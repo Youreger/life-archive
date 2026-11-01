@@ -1,0 +1,327 @@
+/* ============================================================
+   desk.css —— 桌面（中浅胡桃木）、光线、桌面静物
+   纹理全部由 CSS 渐变 + 内联 SVG feTurbulence 噪点生成，不使用任何位图。
+   木纹分三个可辨层次，全部来自"整幅一次性栅格化"的噪声，不含周期、不含拼接边界：
+     底色层   —— 单一纵向渐变（胡桃木主色，L* ≈ 0.46，中等偏暗）
+     低频层   —— 大块山形起伏与料色差（soft-light）
+     中频层   —— 连续纤维，横向拉长（soft-light），是"看得见的木纹"主体
+   全套不使用 repeating-linear-gradient，因此不存在等距条带。
+   ============================================================ */
+
+.desk-surface {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-desk);
+  background-color: var(--wood-500);
+  background-image:
+    /* 整体压暗 6%：把桌面主色拉进 L* 0.40–0.52，且不改变任何纹理结构 */
+    linear-gradient(rgba(40, 28, 18, 0.06), rgba(40, 28, 18, 0.06)),
+    /* 低频：大尺度受光与木料色差（平滑过渡，无台阶） */
+    radial-gradient(1900px 1200px at 6% -20%, var(--wood-figure-light), var(--clear) 70%),
+    radial-gradient(1500px 900px at 106% 114%, var(--wood-figure-deep), var(--clear) 74%),
+    /* 低频：几处山形木纹（位置固定，周期互不可通约） */
+    radial-gradient(1120px 300px at 26% 62%, var(--wood-figure-deep), var(--clear) 84%),
+    radial-gradient(1240px 260px at 82% 20%, var(--wood-figure-soft), var(--clear) 86%),
+    radial-gradient(880px 200px at 58% 90%, var(--wood-figure-soft), var(--clear) 82%),
+    /* 底色：单一纵向渐变，全程连续；整体压暗一档 */
+    linear-gradient(174deg, var(--wood-600) 0%, var(--wood-600) 26%, var(--wood-500) 52%, var(--wood-600) 78%, var(--wood-700) 100%);
+}
+
+/* 低频木纹层：整幅一次性栅格化的 feTurbulence，本身不含任何周期边界 */
+.desk-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--tex-wood);
+  background-size: 100% 100%;
+  mix-blend-mode: soft-light;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* 中频纤维层：横向拉长的连续纤维，木纹可见性的主要来源；opacity 0.5 ≤ 0.25 × 2 */
+.desk-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--tex-wood-fine);
+  background-size: 100% 100%;
+  mix-blend-mode: soft-light;
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+/* 光线：左上方自然午后光。只有两处受光，没有暗角、没有整幅黄色滤镜 */
+.desk-light {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-light);
+  pointer-events: none;
+  background-image:
+    radial-gradient(1600px 1050px at 4% -16%, var(--light-pool), var(--clear) 66%),
+    radial-gradient(980px 680px at 26% 10%, var(--light-warm), var(--clear) 78%);
+}
+
+/* 细腻颗粒：低频软光叠加，只负责微质感；opacity 0.22 ≤ 0.25 */
+.desk-light::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--tex-grain);
+  background-size: 220px 220px;
+  mix-blend-mode: soft-light;
+  opacity: 0.22;
+}
+
+/* 一道极短的浅划痕，位置与角度均为固定值（落在两件主体之间的空桌面） */
+.desk-light::after {
+  content: "";
+  position: absolute;
+  left: 786px;
+  top: 648px;
+  width: 214px;
+  height: 3px;
+  border-radius: 2px;
+  background-image: linear-gradient(90deg, var(--clear), var(--wood-figure-light) 46%, var(--clear));
+  transform: rotate(-3.6deg);
+}
+
+/* ---------- 静物一：哑光米白陶瓷杯（左上角，与信封不接触） ---------- */
+.prop-cup {
+  position: absolute;
+  left: 20px;
+  top: 163px;
+  width: 190px;
+  height: 190px;
+  z-index: var(--z-prop-cup);
+  pointer-events: none;
+}
+
+/* 单一连续落地投影：上缘藏进杯身之后，只露出与杯底相接的一段，边缘柔和 */
+.cup-shadow {
+  position: absolute;
+  left: 24px;
+  top: 148px;
+  width: 186px;
+  height: 32px;
+  border-radius: 50%;
+  background-image: radial-gradient(closest-side,
+    var(--ceramic-ground) 0%,
+    var(--ceramic-ground-soft) 58%,
+    var(--clear) 94%);
+}
+
+/* 把手：完整的一圈，左弧被后绘制的杯身盖住，读作"从杯壁里长出来" */
+.cup-handle {
+  position: absolute;
+  left: 144px;
+  top: 58px;
+  width: 58px;
+  height: 80px;
+  border: 11px solid var(--ceramic-300);
+  border-top-color: var(--ceramic-200);
+  border-right-color: var(--ceramic-300);
+  border-bottom-color: var(--ceramic-500);
+  border-radius: 50%;
+  box-shadow:
+    inset -3px -4px 6px -3px var(--ceramic-shade),
+    3px 4px 7px -3px var(--ceramic-shade);
+}
+
+/* 杯身：左高光带 → 中侧暗转 → 右缘反光，三个可量测的明度层次 */
+.cup-body {
+  position: absolute;
+  left: 32px;
+  top: 40px;
+  width: 128px;
+  height: 122px;
+  border-radius: 6px 6px 42% 42% / 4px 4px 16% 16%;
+  background-image:
+    linear-gradient(92deg,
+      var(--ceramic-400) 0%,
+      var(--ceramic-300) 9%,
+      var(--ceramic-150) 24%,
+      var(--ceramic-200) 40%,
+      var(--ceramic-300) 54%,
+      var(--ceramic-400) 66%,
+      var(--ceramic-500) 76%,
+      var(--ceramic-300) 84%,
+      var(--ceramic-200) 92%,
+      var(--ceramic-300) 100%),
+    linear-gradient(178deg, var(--clear) 54%, var(--ceramic-shade) 100%);
+  box-shadow:
+    inset -9px 0 13px -11px var(--ceramic-shade),
+    inset 0 -16px 18px -15px var(--ceramic-shade);
+}
+
+/* 高光带内侧的柔和过渡，避免出现硬边条纹 */
+.cup-body::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 8px;
+  bottom: 18px;
+  width: 26px;
+  border-radius: 50%;
+  background-image: linear-gradient(180deg, var(--clear), var(--ceramic-200) 30%, var(--clear) 92%);
+  opacity: 0.26;
+}
+
+/* 杯口：外圈唇缘，内壁由 ::after 单独绘制 */
+.cup-rim {
+  position: absolute;
+  left: 32px;
+  top: 24px;
+  width: 128px;
+  height: 38px;
+  border-radius: 50%;
+  background-image: linear-gradient(178deg,
+    var(--ceramic-300) 0%,
+    var(--ceramic-200) 28%,
+    var(--ceramic-150) 54%,
+    var(--ceramic-200) 80%,
+    var(--ceramic-400) 100%);
+  box-shadow:
+    inset 0 -1px 1px var(--ceramic-shade),
+    0 1px 2px -1px var(--ceramic-shade);
+}
+
+/* 杯口内壁：整体压暗，暗侧偏右下，读作"看进杯子里" */
+.cup-rim::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  top: 5px;
+  bottom: 6px;
+  border-radius: 50%;
+  background-image:
+    radial-gradient(74% 128% at 68% 76%, var(--ceramic-shade), var(--clear) 86%),
+    linear-gradient(178deg, var(--ceramic-400) 0%, var(--ceramic-300) 44%, var(--ceramic-500) 100%);
+}
+
+/* ---------- 静物二：深棕色木质笔杆钢笔（两件主体之间的下方空桌面） ---------- */
+/* 笔长 252（x 18→270）/ 笔径 21 = 12.0 : 1；分段：笔尖 34 + 握位 52 + 笔帽笔杆 166 */
+.prop-pen {
+  position: absolute;
+  left: 800px;
+  top: 870px;
+  width: 320px;
+  height: 48px;
+  z-index: var(--z-prop-pen);
+  transform: rotate(-8.5deg);
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+
+/* 投影沿笔身：上缘压在笔杆之后，只露出贴地的一段 */
+.pen-shadow {
+  position: absolute;
+  left: 16px;
+  top: 27px;
+  width: 252px;
+  height: 18px;
+  border-radius: 50%;
+  background-image: radial-gradient(closest-side,
+    var(--ceramic-ground) 0%,
+    var(--ceramic-ground-soft) 62%,
+    var(--clear) 96%);
+}
+
+/* 笔杆（笔帽）：深棕木质，细纵向纹理沿笔身方向，间距不等 */
+.pen-barrel {
+  position: absolute;
+  left: 104px;
+  top: 13.5px;
+  width: 166px;
+  height: 21px;
+  border-radius: 1px 6px 6px 1px;
+  background-color: var(--pen-700);
+  background-image:
+    linear-gradient(180deg,
+      var(--clear) 0 3px,
+      var(--pen-fiber) 3px 4px,
+      var(--clear) 4px 8px,
+      rgba(30, 21, 13, 0.15) 8px 9px,
+      var(--clear) 9px 14px,
+      var(--pen-fiber) 14px 15px,
+      var(--clear) 15px 100%),
+    linear-gradient(180deg,
+      var(--pen-500) 0%,
+      var(--pen-300) 30%,
+      var(--pen-500) 58%,
+      var(--pen-700) 84%,
+      var(--pen-900) 100%);
+  box-shadow: inset 0 1px 0 var(--wood-grain-sheen);
+}
+
+/* 笔夹与笔杆的接缝：不出现亮缝，只有一道暗线 */
+.pen-barrel::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 26px;
+  width: 2px;
+  background-image: linear-gradient(90deg, var(--clear), rgba(24, 16, 10, 0.55));
+  pointer-events: none;
+}
+
+/* 握位（分段二）：更深的树脂段，两端各一道细金属环 */
+.pen-barrel::before {
+  content: "";
+  position: absolute;
+  left: -52px;
+  top: 1px;
+  bottom: 1px;
+  width: 52px;
+  border-radius: 1px 0 0 1px;
+  background-image:
+    linear-gradient(90deg,
+      var(--metal-500) 0 2px,
+      var(--clear) 2px 49px,
+      var(--metal-700) 49px 51px,
+      var(--clear) 51px),
+    linear-gradient(180deg,
+      var(--pen-700) 0%,
+      var(--pen-500) 26%,
+      var(--pen-900) 72%,
+      #241a12 100%);
+  pointer-events: none;
+}
+
+/* 笔尖（分段三）：锥形，长度 34px ≥ 30px，中缝与翼部明暗 */
+.pen-nib {
+  position: absolute;
+  left: 18px;
+  top: 14px;
+  width: 34px;
+  height: 19px;
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
+  background-image:
+    linear-gradient(180deg,
+      var(--metal-700) 0%,
+      var(--metal-300) 30%,
+      var(--metal-500) 66%,
+      var(--metal-700) 100%),
+    linear-gradient(180deg,
+      var(--clear) calc(50% - 0.5px),
+      rgba(48, 42, 32, 0.55) calc(50% - 0.5px) calc(50% + 0.5px),
+      var(--clear) calc(50% + 0.5px));
+  box-shadow: 1px 0 0 var(--metal-700);
+}
+
+/* 笔夹：压在笔杆上，底边与笔杆贴合（下方只有一道暗接缝，没有亮缝） */
+.pen-clip {
+  position: absolute;
+  left: 196px;
+  top: 11px;
+  width: 62px;
+  height: 7px;
+  border-radius: 3px 4px 3px 3px;
+  background-image: linear-gradient(180deg,
+    var(--metal-300) 0%,
+    var(--metal-500) 34%,
+    var(--metal-700) 100%);
+  box-shadow: 0 1px 0 rgba(20, 13, 8, 0.62), inset 0 -1px 0 rgba(30, 22, 14, 0.55);
+}

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>人生档案馆 · 林予安 · 个人档案</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/desk.css">
+<link rel="stylesheet" href="css/envelope.css">
+<link rel="stylesheet" href="css/archive.css">
+<link rel="stylesheet" href="css/notebook.css">
+<link rel="stylesheet" href="css/viewer.css">
+<link rel="stylesheet" href="css/animation.css">
+</head>
+<body>
+  <div id="stage">
+
+    <!-- 固定逻辑画布 1920×1080：统一缩放 + 居中 -->
+    <div id="world-fit">
+
+      <!-- 镜头层：本阶段恒等变换，仅预留 -->
+      <div id="camera">
+
+        <div id="desk-world">
+
+          <!-- 桌面：中浅胡桃木（CSS 渐变 + 内联 SVG 噪点，无位图） -->
+          <div class="desk-surface" aria-hidden="true"></div>
+          <div class="desk-light" aria-hidden="true"></div>
+
+          <!-- 静物一：哑光米白陶瓷杯 -->
+          <div class="prop-cup" aria-hidden="true">
+            <span class="cup-shadow"></span>
+            <span class="cup-handle"></span>
+            <span class="cup-body"></span>
+            <span class="cup-rim"></span>
+          </div>
+
+          <!-- 静物二：深棕色木质笔杆钢笔 -->
+          <div class="prop-pen" aria-hidden="true">
+            <span class="pen-shadow"></span>
+            <span class="pen-clip"></span>
+            <span class="pen-barrel"></span>
+            <span class="pen-nib"></span>
+          </div>
+
+          <!-- 牛皮纸档案袋：封盖本阶段合拢 -->
+          <div id="envelope" class="envelope">
+            <div class="back-panel"></div>
+
+            <div class="inner-pocket">
+              <div class="pocket-face">
+                <span class="pocket-kicker">PERSONAL ARCHIVE</span>
+                <h1 class="pocket-title">林予安 · 个人档案</h1>
+                <span class="pocket-code">2026 / 001</span>
+                <span class="pocket-tag">大学生活</span>
+                <span class="pocket-gusset pocket-gusset--left"></span>
+                <span class="pocket-gusset pocket-gusset--right"></span>
+                <span class="pocket-foot"></span>
+              </div>
+            </div>
+
+            <div class="front-flap">
+              <span class="flap-face"></span>
+            </div>
+          </div>
+
+          <!-- 六张 A4 档案纸：与 #envelope 同级，避免被信封 overflow 裁切 -->
+          <div id="paper-bundle">
+            <article class="archive-item" data-id="1">
+              <div class="motion-layer">
+                <div class="pose-layer">
+                  <div class="paper-content"></div>
+                </div>
+              </div>
+            </article>
+            <article class="archive-item" data-id="2">
+              <div class="motion-layer">
+                <div class="pose-layer">
+                  <div class="paper-content"></div>
+                </div>
+              </div>
+            </article>
+            <article class="archive-item" data-id="3">
+              <div class="motion-layer">
+                <div class="pose-layer">
+                  <div class="paper-content"></div>
+                </div>
+              </div>
+            </article>
+            <article class="archive-item" data-id="4">
+              <div class="motion-layer">
+                <div class="pose-layer">
+                  <div class="paper-content"></div>
+                </div>
+              </div>
+            </article>
+            <article class="archive-item" data-id="5">
+              <div class="motion-layer">
+                <div class="pose-layer">
+                  <div class="paper-content"></div>
+                </div>
+              </div>
+            </article>
+            <article class="archive-item" data-id="6">
+              <div class="motion-layer">
+                <div class="pose-layer">
+                  <div class="paper-content"></div>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <!-- 深棕布面硬壳笔记本：本阶段闭合 -->
+          <div id="notebook" class="notebook">
+            <div class="notebook-back"></div>
+            <div class="page"></div>
+            <div class="spine"></div>
+            <div class="cover-hinge">
+              <div class="cover">
+                <span class="cover-foil">拾光手记</span>
+                <span class="cover-sub">MEMORY NOTES</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 阅读位锚点：0 尺寸，第三阶段使用 -->
+          <div id="paper-reader-slot" aria-hidden="true"></div>
+
+          <!-- 第四阶段：档案切换控件（‹ 页码 ›），world 坐标见 css/archive.css §P4 -->
+          <div id="reader-nav" class="reader-nav">
+            <button class="reader-nav__btn reader-nav__btn--prev" type="button" aria-label="上一份档案">‹</button>
+            <span class="reader-nav__page"><span class="reader-nav__now">01</span> / 06</span>
+            <button class="reader-nav__btn reader-nav__btn--next" type="button" aria-label="下一份档案">›</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 图片查看器遮罩：第六阶段实现，本阶段隐藏 -->
+    <div id="viewer-overlay" aria-hidden="true"></div>
+
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/animation.js"></script>
+  <script src="js/envelope.js"></script>
+  <script src="js/archive.js"></script>
+  <script src="js/notebook.js"></script>
+  <script src="js/viewer.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

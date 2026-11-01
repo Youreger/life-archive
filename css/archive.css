@@ -1,0 +1,774 @@
+/* ============================================================
+   archive.css —— 六张 A4 档案纸（静态堆叠）与素材位占位系统
+   初始状态（md 六.1）：#paper-bundle 整块落在 #envelope 的合拢封盖之内，
+   z-index 低于信封本体，屏幕上不出现任何纸边；它仍是 #envelope 的兄弟节点，
+   不依赖任何 overflow 裁切。
+   每张纸三层 transform 分工：
+   .archive-item  → 布局与堆叠（仅 z-index）
+   .motion-layer  → 位置（translate3d）
+   .pose-layer    → 姿态（rotate）
+   .paper-content → 纸张本体与内容
+   ============================================================ */
+
+#paper-bundle {
+  position: absolute;
+  /* 与 #envelope 同心（信封中心 world 508,540）：纸叠整体居中，
+     旋转后的信封左右轮廓才对称地包住纸叠。 */
+  left: 282px;
+  top: 220px;
+  width: 452px;
+  height: 640px;
+  z-index: var(--z-bundle);
+}
+
+.archive-item {
+  position: absolute;
+  /* 纸在纸叠内缩一圈：412×584 ≈ A4，给位偏移与姿态旋转留出余量，
+     保证任何一张纸都不会伸出纸叠矩形、更不会伸出信封轮廓。 */
+  inset: 16px 21px;
+}
+
+.archive-item[data-id="1"] { z-index: var(--z-paper-1); }
+.archive-item[data-id="2"] { z-index: var(--z-paper-2); }
+.archive-item[data-id="3"] { z-index: var(--z-paper-3); }
+.archive-item[data-id="4"] { z-index: var(--z-paper-4); }
+.archive-item[data-id="5"] { z-index: var(--z-paper-5); }
+.archive-item[data-id="6"] { z-index: var(--z-paper-6); }
+
+/* 进入阅读位的那一张：抬到阅读层，压在其余五张与道具之上 */
+.archive-item.is-reading {
+  z-index: var(--z-reader);
+}
+
+.motion-layer,
+.pose-layer {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+}
+
+/* 位置：只写在 .motion-layer（固定值，不用随机抖动） */
+.archive-item[data-id="1"] .motion-layer { transform: translate3d(3px, -2px, 0); }
+.archive-item[data-id="2"] .motion-layer { transform: translate3d(-4px, 3px, 0); }
+.archive-item[data-id="3"] .motion-layer { transform: translate3d(4px, 4px, 0); }
+.archive-item[data-id="4"] .motion-layer { transform: translate3d(-4px, -3px, 0); }
+.archive-item[data-id="5"] .motion-layer { transform: translate3d(3px, 4px, 0); }
+.archive-item[data-id="6"] .motion-layer { transform: translate3d(-2px, 1px, 0); }
+
+/* 姿态：只写在 .pose-layer，角度全部落在 ±1°~2° */
+.archive-item[data-id="1"] .pose-layer { transform: rotate(1.2deg); }
+.archive-item[data-id="2"] .pose-layer { transform: rotate(-1.4deg); }
+.archive-item[data-id="3"] .pose-layer { transform: rotate(1.8deg); }
+.archive-item[data-id="4"] .pose-layer { transform: rotate(-0.8deg); }
+.archive-item[data-id="5"] .pose-layer { transform: rotate(-1.9deg); }
+.archive-item[data-id="6"] .pose-layer { transform: rotate(0.9deg); }
+
+/* 纸张本体：接近直角（圆角 2px），三档纸色差异极小 */
+.paper-content {
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+  overflow: hidden;
+  isolation: isolate;
+  background-color: var(--paper-natural);
+  background-image:
+    radial-gradient(320px 220px at 16% 4%, var(--paper-edge-light), var(--clear) 70%),
+    linear-gradient(174deg, var(--clear) 0 64%, var(--paper-fiber) 100%);
+  box-shadow: var(--shadow-paper-inset), var(--shadow-contact);
+}
+
+.archive-item[data-id="2"] .paper-content { background-color: var(--paper-warm); }
+.archive-item[data-id="3"] .paper-content { background-color: var(--paper-cool); }
+.archive-item[data-id="4"] .paper-content { background-color: var(--paper-warm); }
+.archive-item[data-id="5"] .paper-content { background-color: var(--paper-natural); }
+.archive-item[data-id="6"] .paper-content {
+  background-color: var(--paper-cool);
+  box-shadow: var(--shadow-paper-inset), var(--shadow-lift);
+}
+
+/* 纸张纤维（细腻噪点） */
+.paper-content::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--tex-fiber), var(--tex-grain);
+  background-size: 140px 140px, 220px 220px;
+  mix-blend-mode: multiply;
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+/* 轻微折痕 / 压痕 */
+.paper-content::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: linear-gradient(100.5deg, var(--clear) 57.6%, var(--paper-crease) 57.6% 58.4%, var(--clear) 58.4%);
+  pointer-events: none;
+}
+
+/* 阅读位锚点：0 尺寸，仅占位（第三阶段纸张 FLIP 到此处） */
+#paper-reader-slot {
+  position: absolute;
+  left: var(--reader-anchor-x);
+  top: var(--reader-anchor-y);
+  width: 0;
+  height: 0;
+  z-index: var(--z-reader);
+  pointer-events: none;
+}
+
+/* ============================================================
+   素材位占位系统（映射 md 十六章）
+   结构（第三阶段由 data.js 的 assets 配置渲染）：
+   <div class="asset-slot" style="--asset-ratio: 159 / 90">
+     <div class="asset-slot__ph">
+       <span class="asset-slot__name">电影票</span>
+       <span class="asset-slot__tag">示例占位</span>
+     </div>
+     <img class="asset-slot__img" src="…" alt="…">
+   </div>
+   固定宽高比容器 + 底层占位 + 上层绝对定位 img；
+   img 缺失或加载失败时容器尺寸完全不变（布局零跳动）。
+   ============================================================ */
+
+.asset-slot {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: var(--asset-ratio, 3 / 2);
+  overflow: hidden;
+  background-color: var(--paper-cool);
+  background-image: var(--tex-fiber);
+  background-size: 140px 140px;
+  box-shadow: inset 0 0 0 1px var(--paper-hairline);
+}
+
+.asset-slot__ph {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.asset-slot__name {
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-sub);
+  line-height: var(--lh-snug);
+  color: var(--ink-body);
+}
+
+.asset-slot__tag {
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-note);
+  line-height: 1;
+  letter-spacing: var(--ls-wide);
+  color: var(--ink-muted);
+}
+
+.asset-slot__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 加载失败：只隐藏图片，占位层与容器尺寸不变 */
+.asset-slot__img.is-missing {
+  visibility: hidden;
+}
+
+/* ============================================================
+   第三阶段：六份档案的纸面版式
+   .sheet 用 636×900 的纸面坐标空间排版（见 tokens.css §18），
+   六份共用页头/页脚/注记骨架，正文骨架各成一套：
+   01 票根+短评 / 02 表格课程表 / 03 聊天面板 / 04 左票据右对话 /
+   05 摄影计划+照片三联 / 06 大图+留言条
+   ============================================================ */
+
+.paper-content > .sheet {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--sheet-w);
+  height: var(--sheet-h);
+  box-sizing: border-box;
+  transform: scale(var(--sheet-scale-x), var(--sheet-scale-y));
+  transform-origin: 0 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--sheet-pad-top) var(--sheet-pad-x) var(--sheet-pad-bottom);
+  overflow: hidden;
+  font-family: var(--ff-serif);
+  font-size: var(--fs-paper-body);
+  line-height: var(--lh-reading);
+  color: var(--ink-body);
+}
+
+/* ---------- 页头 ---------- */
+.pf-head { flex: 0 0 auto; }
+
+.pf-head::after {
+  content: "";
+  display: block;
+  margin-top: 14px;
+  height: 1px;
+  background: var(--pf-rule);
+}
+
+.pf-kicker {
+  margin: 0 0 9px;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-note);
+  letter-spacing: var(--ls-caps);
+  color: var(--ink-muted);
+}
+
+.pf-title {
+  margin: 0;
+  font-size: var(--fs-paper-title);
+  line-height: 1.26;
+  letter-spacing: 0.01em;
+  font-weight: 600;
+  color: var(--ink-title);
+}
+
+.pf-meta {
+  margin: 9px 0 0;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-note);
+  letter-spacing: 0.03em;
+  color: var(--ink-muted);
+}
+
+.pf-dot { margin: 0 7px; opacity: 0.66; }
+
+/* ---------- 正文流 / 注记 / 页脚 ---------- */
+.pf-flow {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 22px;
+}
+
+.pf-note {
+  flex: 0 0 auto;
+  margin: 14px 0 0;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-note);
+  line-height: 1.58;
+  color: var(--ink-muted);
+}
+
+.pf-page {
+  position: absolute;
+  left: var(--sheet-pad-x);
+  right: var(--sheet-pad-x);
+  bottom: var(--sheet-foot-bottom);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-note);
+  color: var(--ink-muted);
+}
+
+.pf-page__no {
+  letter-spacing: var(--ls-wide);
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-page__mark { letter-spacing: 0.05em; opacity: 0.82; }
+
+.pf-p { margin: 0; }
+.pf-p + .pf-p { margin-top: 8px; }
+
+.pf-h3 {
+  margin: 0 0 10px;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-sub);
+  font-weight: 600;
+  letter-spacing: var(--ls-wide);
+  color: var(--ink-muted);
+}
+
+.pf-lead {
+  margin: 0;
+  font-family: var(--ff-hand);
+  font-size: var(--fs-paper-lead);
+  line-height: 1.62;
+  /* 阶梯收成 17px 后，靠字距 + 手写体 + 色阶分辨层次 */
+  letter-spacing: 0.01em;
+  color: var(--ink-body);
+}
+
+.pf-col__tag {
+  margin: 0 0 10px;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-note);
+  letter-spacing: var(--ls-wide);
+  color: var(--ink-muted);
+}
+
+.pf-slip { margin: 0 0 0 auto; width: 80px; }
+
+/* 03 的聊天面板与彩印件并排：面板撑满左侧，彩印件贴右上，不与页脚抢空间 */
+.archive-sheet--03 .pf-flow {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.archive-sheet--03 .im-panel { flex: 1 1 auto; min-width: 0; }
+
+.archive-sheet--03 .pf-slip {
+  flex: 0 0 auto;
+  width: 84px;
+  margin: 0;
+}
+
+/* ---------- 01 一场普通的电影：票根 + 短评 ---------- */
+.archive-sheet--01 .pf-flow { gap: 26px; }
+
+.pf-ticket {
+  position: relative;
+  align-self: center;
+  width: 340px;
+  margin: 6px 0 0;
+  transform: rotate(-1.7deg);
+}
+
+.pf-ticket .asset-slot {
+  box-shadow: inset 0 0 0 1px var(--pf-rule-soft), var(--pf-relief);
+}
+
+.pf-tape {
+  position: absolute;
+  left: 50%;
+  top: -11px;
+  width: 92px;
+  height: 21px;
+  transform: translateX(-50%) rotate(-1.4deg);
+  background: rgba(226, 213, 188, 0.74);
+  box-shadow: 0 1px 2px rgba(48, 33, 22, 0.10);
+}
+
+/* ---------- 02 课程表：打印表格 ---------- */
+.pf-block--print {
+  padding: 20px 18px 16px;
+  background: var(--paper-cool);
+  box-shadow: inset 0 0 0 1px var(--pf-rule-soft), 0 1px 2px rgba(48, 33, 22, 0.06);
+}
+
+.pf-tt {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-sub);
+  line-height: 1.4;
+  color: var(--ink-body);
+}
+
+.pf-tt th,
+.pf-tt td {
+  border: 1px solid var(--pf-rule-soft);
+  padding: 9px 6px;
+  text-align: center;
+  font-weight: 400;
+}
+
+.pf-tt thead th {
+  background: var(--pf-wash);
+  color: var(--ink-muted);
+  letter-spacing: 0.06em;
+}
+
+.pf-tt__corner { width: 76px; }
+
+.pf-tt__row {
+  width: 76px;
+  text-align: left;
+  padding-left: 10px;
+  color: var(--ink-muted);
+}
+
+.pf-tt__cell { height: 40px; }
+.pf-tt__cell.is-marked { background: rgba(198, 171, 134, 0.28); }
+
+.pf-tt__chip {
+  font-size: var(--fs-paper-note);
+  letter-spacing: 0.08em;
+  /* 标记需 ≥4.5:1：ink-muted 在 tinted 格底上只有 4.45，改 ink-body */
+  color: var(--ink-body);
+}
+
+.pf-cap {
+  margin: 13px 0 0;
+  font-family: var(--ff-hand);
+  font-size: var(--fs-paper-sub);
+  color: var(--ink-muted);
+}
+
+.pf-quotes { display: flex; flex-direction: column; gap: 9px; }
+
+.pf-orig { margin: 0 0 0 auto; width: 132px; }
+
+/* ---------- 03 / 04 聊天面板 ---------- */
+.im-panel {
+  padding: 16px 16px 0;
+  background: var(--im-bg);
+  box-shadow: inset 0 0 0 1px var(--pf-rule-soft);
+}
+
+.im-stamp {
+  padding-bottom: 12px;
+  text-align: center;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-note);
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+}
+
+.im-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+
+.im-row--r { flex-direction: row-reverse; }
+
+.im-face {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  background: var(--kraft-300);
+  box-shadow: inset 0 0 0 1px var(--pf-rule-soft);
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-note);
+  line-height: 1;
+  color: var(--ink-on-kraft);
+}
+
+.im-bubble {
+  max-width: 336px;
+  padding: 9px 12px;
+  background: var(--im-bubble);
+  box-shadow: inset 0 0 0 1px var(--pf-rule-soft);
+  font-size: var(--fs-paper-body);
+  line-height: var(--lh-bubble);
+  color: var(--ink-body);
+}
+
+.im-row--r .im-bubble { background: var(--im-bubble-tint); }
+
+.im-bubble--file {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 222px;
+}
+
+.im-file__name {
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-sub);
+  color: var(--ink-title);
+}
+
+.im-file__meta {
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-note);
+  color: var(--ink-muted);
+}
+
+.im-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px -16px 0;
+  padding: 11px 16px;
+  background: var(--paper-cool);
+  box-shadow: inset 0 1px 0 var(--pf-rule-soft);
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-sub);
+  color: var(--ink-muted);
+}
+
+.im-input__send {
+  font-size: var(--fs-paper-note);
+  letter-spacing: 0.06em;
+}
+
+/* ---------- 04 家里的日常：左票据叠放 / 右母亲对话 ---------- */
+.pf-cols {
+  display: grid;
+  grid-template-columns: 196px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.pf-col { display: flex; flex-direction: column; min-width: 0; }
+
+.pf-stack { position: relative; height: 496px; }
+
+.pf-receipt {
+  position: absolute;
+  width: 150px;
+  margin: 0;
+  transform-origin: 50% 8%;
+}
+
+.pf-receipt .asset-slot {
+  box-shadow: inset 0 0 0 1px var(--pf-rule-soft), var(--pf-relief);
+}
+
+.pf-receipt--1 { top: 0; left: 0; transform: rotate(-2.2deg); }
+.pf-receipt--2 { top: 132px; left: 16px; transform: rotate(1.5deg); }
+.pf-receipt--3 { top: 262px; left: 4px; transform: rotate(-1.1deg); }
+
+.archive-sheet--04 .im-panel { padding: 14px 14px 0; }
+.archive-sheet--04 .im-bubble { max-width: 212px; }
+.archive-sheet--04 .im-input { margin: 12px -14px 0; padding: 10px 14px; }
+.pf-slip--talk { margin: 12px 0 0 auto; }
+
+/* ---------- 05 还没拍完的照片：计划 + 三联 ---------- */
+.pf-plan {
+  display: grid;
+  grid-template-columns: 246px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.pf-plan__paper { margin: 0; }
+
+.pf-plan__paper .asset-slot {
+  box-shadow: inset 0 0 0 1px var(--pf-rule-soft), var(--pf-relief);
+}
+
+.pf-plan__side { display: flex; flex-direction: column; gap: 8px; }
+
+.pf-plan__tag { margin: 0; }
+
+.pf-plan__list {
+  margin: 0;
+  padding-left: 20px;
+  font-family: var(--ff-hand);
+  font-size: var(--fs-paper-lead);
+  line-height: 1.62;
+  letter-spacing: 0.01em;
+  color: var(--ink-body);
+}
+
+.pf-plan__item { padding-left: 2px; }
+
+.pf-trio {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.pf-trio__item { margin: 0; }
+.pf-trio__item .asset-slot { box-shadow: inset 0 0 0 1px var(--pf-rule-soft), var(--pf-relief); }
+
+.pf-trio__item--2 { transform: rotate(1.1deg); }
+.pf-trio__item--3 { transform: rotate(-1.3deg); }
+
+.pf-paras { display: flex; flex-direction: column; gap: 9px; }
+
+/* ---------- 06 那些一起走过的人：大图 + 留言条 ---------- */
+.pf-hero {
+  align-self: center;
+  width: 392px;
+  margin: 0;
+  transform: rotate(-0.8deg);
+}
+
+.pf-hero .asset-slot { box-shadow: inset 0 0 0 1px var(--pf-rule-soft), var(--pf-relief); }
+
+.pf-col__tag--left { margin: 0; }
+
+.pf-msgs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pf-msg {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 10px;
+  padding: 10px 14px;
+  background: var(--im-bubble);
+  box-shadow: inset 0 0 0 1px var(--pf-rule-soft);
+}
+
+.pf-msg__name {
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-note);
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+}
+
+.pf-msg__tag {
+  font-family: var(--ff-sans);
+  font-size: var(--fs-paper-note);
+  /* 去掉 opacity 0.86：它把 ink-muted 稀释到 4.17:1 */
+  color: var(--ink-muted);
+  text-align: right;
+}
+
+.pf-msg__text {
+  grid-column: 1 / -1;
+  font-size: var(--fs-paper-body);
+  line-height: var(--lh-reading);
+  color: var(--ink-body);
+}
+
+.pf-msg--2 { transform: rotate(0.7deg); }
+.pf-msg--3 { transform: rotate(-0.6deg); }
+
+
+/* ============================================================
+   第四阶段：档案切换 —— 控件与换纸过渡（md:847-944）
+   控件挂在 #desk-world 内，按 world 坐标摆放：
+   阅读位纸面中心 world = (1130.37, 540)（C1 下 --reader-anchor-x/y 的反算值）
+   半宽 235.56 / 半高 333.33 world（--reader-paper-w/h ÷ 2 ÷ 1.35）。
+   换纸时长/缓动同样集中成 CSS 令牌（本轮可改文件不含 tokens.css，
+   令牌就定义在本段，js 只读取、不写裸时长）。
+   ============================================================ */
+
+:root {
+  --dur-switch-return: 560ms;   /* 旧纸退回纸叠 */
+  --dur-switch-pull: 640ms;     /* 新纸抽出到阅读位 */
+  --del-switch-pull: 240ms;     /* 新纸延后 240ms 起步 = 与旧纸交错 */
+  --dur-switch-grab: 200ms;     /* 新纸被"抓起"时的倾斜过渡 */
+  --dur-switch-lift: 140ms;     /* 旧纸抬起 */
+  --dur-switch-straight: 300ms; /* 新纸落定前摆正 */
+  --dur-page-fade: 120ms;       /* 内容落定前 ≤120ms 淡入 */
+  --ease-switch-out: cubic-bezier(0.34, 0.04, 0.30, 1);
+  --ease-switch-in: cubic-bezier(0.22, 0.62, 0.24, 1);
+  --switch-tilt: 3.2deg;        /* 新纸抽出时的倾斜（md:900-915 要求 2°–4°） */
+  --switch-lift: 1.015;         /* 旧纸抬起（md:879-882 要求 1.01–1.02） */
+
+  --z-nav: 70;
+  --nav-paper-cx: 1130.37px;
+  --nav-paper-cy: 540px;
+  --nav-half-w: 235.56px;
+  --nav-half-h: 333.33px;
+  --nav-gap-x: 38px;            /* 控件到纸缘的水平间隙 */
+  --nav-gap-y: 20px;            /* 页码到纸底的距离 */
+  --nav-size: 44px;             /* 点击区（world px） */
+  --nav-ink: rgba(52, 41, 30, 0.66);
+  --nav-ink-strong: rgba(38, 29, 20, 0.88);
+}
+
+#reader-nav {
+  position: absolute;
+  left: var(--nav-paper-cx);
+  top: var(--nav-paper-cy);
+  width: 0;
+  height: 0;
+  z-index: var(--z-nav);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 320ms ease, visibility 0s linear 320ms;
+}
+
+#reader-nav.is-live {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 320ms ease;
+}
+
+.reader-nav__btn {
+  position: absolute;
+  width: var(--nav-size);
+  height: var(--nav-size);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--ff-sans);
+  font-size: 26px;
+  line-height: 1;
+  color: var(--nav-ink-strong);
+  /* 控件落在纸与笔记本的投影带上（实测桌面从 231 掉到 80 灰阶），单一墨色在
+     两处不可能同时够 3:1；给符号一层纸色柔光描边，暗处由描边托住、亮处隐没。 */
+  text-shadow: 0 0 9px rgba(247, 241, 229, 0.92),
+               0 0 2px rgba(247, 241, 229, 0.85);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.reader-nav__btn--prev {
+  left: calc(-1 * (var(--nav-half-w) + var(--nav-gap-x)) - var(--nav-size) / 2);
+  top: calc(-1 * var(--nav-size) / 2);
+}
+
+.reader-nav__btn--next {
+  left: calc(var(--nav-half-w) + var(--nav-gap-x) - var(--nav-size) / 2);
+  top: calc(-1 * var(--nav-size) / 2);
+}
+
+.reader-nav__btn:disabled {
+  /* 禁用态必须"看得见但不主动"：26% 太虚（实测与桌面亮度之比不到 3:1），
+     这里用 55% —— 与可用态（100%）一眼可分，同时仍读得出是同一个符号。 */
+  opacity: 0.55;
+  cursor: default;
+}
+
+.reader-nav__page {
+  position: absolute;
+  left: -60px;
+  top: calc(var(--nav-half-h) + var(--nav-gap-y));
+  width: 120px;
+  text-align: center;
+  font-family: var(--ff-sans);
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  font-variant-numeric: tabular-nums;
+  color: var(--nav-ink-strong);
+  text-shadow: 0 0 9px rgba(247, 241, 229, 0.92),
+               0 0 2px rgba(247, 241, 229, 0.85);
+  pointer-events: none;
+}
+
+/* 非当前档案：只隐藏"内容"，纸张本体（.paper-content 的纸色/纤维/边线/投影）
+   照旧可见 —— 否则退回去的纸会整张凭空消失，纸叠在切换的一瞬间变成空的。
+   几何一律不变：.sheet 用 visibility/opacity 隐藏，它是 .paper-content 的
+   绝对定位子层，不参与 .motion-layer 的渲染盒测量。 */
+.archive-item.is-page-hidden > .motion-layer > .pose-layer > .paper-content > .sheet {
+  visibility: hidden;
+  opacity: 0;
+}
+
+/* 旧纸退回时阴影加深（换纸的"抬起"由 js 改 pose 内联 transform 完成） */
+.archive-item.is-returning .paper-content {
+  box-shadow: var(--shadow-paper-inset),
+              0 2px 4px rgba(48, 33, 22, 0.22),
+              0 10px 24px rgba(48, 33, 22, 0.30);
+}
+
+/* 换纸进行中：纸叠不再接受任何点击 */
+#paper-bundle.is-switching .archive-item {
+  pointer-events: none;
+}
+
+

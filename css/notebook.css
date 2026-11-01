@@ -1,0 +1,465 @@
+/* ============================================================
+   notebook.css —— 深棕布面硬壳笔记本（单页、非左右对开）
+   DOM：#notebook > .notebook-back / .page / .spine / .cover-hinge > .cover
+   尺寸：322 × 460 world。第二阶段镜头推进到 C1（scale 1.35）后，
+   占画面 322 × 1.35 / 1920 = 22.6%（md 要求 18%~23%，不抢档案纸）；
+   第一阶段是 444 宽，那是"镜头未推进"时的比例，推进后必须与档案纸
+   同处一个 world 坐标系里换算，否则两条要求无法同时成立。
+   布纹 = 不规则 feTurbulence 噪点（两种尺度，soft-light），不含
+   repeating-linear-gradient，与缩放解耦、无摩尔纹。
+   书口（.page 露出的页缘，P-1）= 12 world px 宽的一叠纸边：
+   外侧柔影 1.5px + 三层纸色 + 2 条 1px 分层线；最亮一档 #efe6d5
+   明度 0.886（上限 0.93），与封面底 #523828 明度差 0.64 ≈ 164 灰阶
+   （要求 ≥20），没有近白亮线。
+   纸叠条带 12px 之后的主体改用 var(--paper-natural)，与档案纸同族、
+   只暖一档（R2），不再是独立的奶油色块。
+   开合：绕书脊 rotateY 写在 .cover 上（origin 0 50%）。.cover 本身是
+   透明卡片、不挂 backface-visibility；正面写在 .cover::before、内衬面
+   写在 .cover::after（rotateY(180deg)），两个面各自挂 hidden，过 90°
+   正面整片退场、内衬面接手，全程不会整片消失、也不会露出镜像烫金
+   （.cover-foil / .cover-sub 同样挂 hidden）。
+   left 1450 而非 1430：封面翻开后朝书脊左侧展开、会占掉档案纸与书身
+   之间的桌面空隙，右移 20 world px 让翻开的封面有 ≥130 canvas px 可视宽。
+   ============================================================ */
+
+#notebook {
+  position: absolute;
+  left: 1450px;
+  top: 310px;
+  width: 322px;
+  height: 460px;
+  z-index: var(--z-notebook);
+  transform: rotate(-1.8deg);
+  transform-origin: 50% 50%;
+  perspective: 1500px;
+}
+
+/* 书身：比封面略大的硬壳厚度 */
+.notebook-back {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 3px 7px 7px 3px;
+  background-color: var(--cloth-700);
+  background-image:
+    var(--tex-cloth),
+    radial-gradient(400px 300px at 18% 0%, var(--cloth-sheen), var(--clear) 76%),
+    linear-gradient(178deg, var(--cloth-600) 0%, var(--cloth-700) 54%, var(--cloth-800) 100%);
+  background-size: 72px 72px, auto, auto;
+  background-blend-mode: soft-light, normal, normal;
+  box-shadow: 0 8px 18px var(--cloth-shade), var(--shadow-object);
+}
+
+/* 书口纸叠：右侧露出 12px 的一叠页缘 */
+.page {
+  position: absolute;
+  inset: 6px 2px 6px 10px;
+  z-index: 1;
+  overflow: hidden;      /* 翻页叶片转过书脊后由这里裁掉，不越出笔记本轮廓 */
+  perspective: 1200px;   /* 叶子是 .page 的子元素，透视必须挂在 .page 上 */
+  border-radius: 1px 2px 2px 1px;
+  background-color: var(--paper-natural);
+  background-image:
+    linear-gradient(270deg,
+      var(--paper-stack-edge) 0 1.5px,
+      var(--paper-stack-100) 1.5px 4px,
+      var(--paper-stack-line) 4px 5px,
+      var(--paper-stack-200) 5px 8px,
+      var(--paper-stack-line-soft) 8px 9px,
+      var(--paper-stack-300) 9px 12px,
+      transparent 12px),
+    linear-gradient(90deg, rgba(206, 186, 148, 0.44) 0%, rgba(206, 186, 148, 0.28) 56%, rgba(206, 186, 148, 0.17) 100%),
+    linear-gradient(96deg, var(--clear) 0 58%, var(--paper-fiber) 100%);
+  box-shadow:
+    inset 34px 0 26px -22px rgba(56, 38, 24, 0.50),
+    inset 12px 0 14px -10px rgba(56, 38, 24, 0.28),
+    inset -1px 0 0 var(--paper-stack-edge),
+    inset 1px 0 0 var(--paper-hairline),
+    1px 0 9px -1px rgba(34, 23, 14, 0.42),
+    0 1px 3px rgba(34, 23, 14, 0.20);
+}
+
+.spine {
+  position: absolute;
+  left: 6px;
+  top: 3px;
+  bottom: 3px;
+  z-index: 3;
+  width: 13px;
+  border-radius: 4px 0 0 4px;
+  background-image: linear-gradient(90deg, var(--cloth-800) 0%, var(--cloth-600) 40%, var(--cloth-500) 76%, var(--cloth-600) 100%);
+  box-shadow: inset 1px 0 0 var(--cloth-wear), inset -1px 0 0 var(--cloth-shade), 2px 0 6px -3px var(--cloth-shade);
+}
+
+/* 封面铰链层：只负责撑起 preserve-3d，rotateY 写在 .cover 上 */
+.cover-hinge {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  transform-origin: 12px 50%;
+  transform: rotateY(0deg);
+  transform-style: preserve-3d;
+  /* 铰链层只撑 preserve-3d，不承载任何交互：翻开后它的未变换盒仍覆盖整张
+     书写页，会吃掉页面上「继续」按钮的真鼠标点击（B5/B6 实测过坑）。 */
+  pointer-events: none;
+}
+
+.cover {
+  position: absolute;
+  inset: 3px 14px 3px 12px;
+  border-radius: 3px 6px 6px 3px;
+  transform-origin: 0 50%;
+  transform: rotateY(0deg);
+  transform-style: preserve-3d;
+  border-radius: 3px 6px 6px 3px;
+  background: none;
+  box-shadow: none;
+}
+/* 卡片本身不挂 backface-visibility：两个"面"各自挂，正面与内衬不会互相抹掉 */
+
+/* 封面正面（布面 + 两种尺度布纹）：一个独立的"面"，
+   backface-visibility 挂在面上，过 90° 后它整片退场，由内衬面接手 */
+.cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  backface-visibility: hidden;
+  background-color: var(--cloth-600);
+  background-image:
+    var(--tex-cloth),
+    radial-gradient(58px 44px at 100% 0%, var(--cloth-wear), var(--clear) 72%),
+    radial-gradient(52px 40px at 0% 100%, var(--cloth-wear), var(--clear) 74%),
+    radial-gradient(46px 36px at 100% 100%, var(--cloth-wear), var(--clear) 76%),
+    radial-gradient(120px 26px at 46% 0%, var(--cloth-wear), var(--clear) 78%),
+    radial-gradient(400px 320px at 14% 2%, var(--cloth-sheen), var(--clear) 76%),
+    linear-gradient(152deg, var(--cloth-500) 0%, var(--cloth-600) 44%, var(--cloth-700) 100%),
+    var(--tex-cloth);
+  background-size: 72px 72px, auto, auto, auto, auto, auto, auto, 187px 187px;
+  background-blend-mode: soft-light, normal, normal, normal, normal, normal, normal, soft-light;
+  box-shadow: inset 0 0 0 1px var(--cloth-shade), inset 0 -1px 0 var(--cloth-wear), var(--shadow-contact);
+  pointer-events: none;
+}
+
+/* 封面内衬（同一张纸的背面）：翻开后由它接手，底色比封面浅一档 */
+.cover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+  background-color: var(--cloth-500);
+  background-image:
+    var(--tex-cloth),
+    linear-gradient(90deg, var(--cloth-800) 0 3px, var(--clear) 3px 5px, var(--clear) 95%, var(--cloth-700) 95%),
+    linear-gradient(180deg, var(--cloth-800) 0 3px, var(--clear) 3px 96%, var(--cloth-700) 96%),
+    radial-gradient(300px 240px at 22% 6%, var(--cloth-sheen), var(--clear) 74%),
+    linear-gradient(196deg, var(--cloth-wear) 0%, var(--clear) 34%),
+    linear-gradient(196deg, var(--cloth-500) 0%, var(--cloth-600) 58%, var(--cloth-700) 100%);
+  background-size: 64px 64px, auto, auto, auto, auto, auto;
+  background-blend-mode: soft-light, normal, normal, normal, normal, normal;
+  box-shadow:
+    inset 0 0 0 1px var(--cloth-shade),
+    inset 0 0 26px rgba(26, 17, 10, 0.40),
+    inset -6px 0 12px -8px rgba(26, 17, 10, 0.55),
+    var(--shadow-contact),
+    -14px 18px 32px -10px rgba(34, 22, 13, 0.44);
+  pointer-events: none;
+}
+
+/* 小面积烫金：拾光手记 */
+.cover-foil {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 178px;
+  text-align: center;
+  font-family: var(--ff-serif);
+  font-weight: 600;
+  font-size: var(--fs-body-sm);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  backface-visibility: hidden;
+  color: var(--gold-400);
+  background-image: linear-gradient(168deg, var(--gold-300) 0%, var(--gold-400) 42%, var(--gold-600) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: var(--clear);
+  text-shadow: 0 1px 0 var(--cloth-800), 0 0 7px var(--foil-glow);
+}
+
+/* 英文小字：MEMORY NOTES */
+.cover-sub {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 209px;
+  text-align: center;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-caps);
+  line-height: var(--lh-snug);
+  letter-spacing: 0.30em;
+  backface-visibility: hidden;
+  color: var(--gold-400);
+  text-shadow: 0 1px 0 var(--cloth-800);
+}
+
+/* ============================================================
+   第五阶段：书写页（md:992-994 单页 / md:1013,1026-1039 纵向留言列表）
+   一页对应一份档案，内容全部来自 js/data.js 的 notebookData。
+   版式取"摊开笔记本的内页"而不是界面：没有卡片边框、没有底色块，
+   留言之间只有行距与极轻的倾斜差；装订侧（左）留出 46px 给沟槽内影，
+   右缘 28px 让开 12px 的纸叠页缘条带（P-1，未改）。
+   字号只有两档 17 / 15，正文 15 world px（1366 档 ≈14.4 canvas px）。
+   ============================================================ */
+.page-inner {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  padding: 26px 28px 24px 46px;
+  /* 返工 R1(a)：新页不靠整页透明度出现。叶片正面贴旧页副本盖在上面，
+     叶片转开多少就露出多少，所以这里必须恒为 1（不做任何 opacity 动画）。 */
+  opacity: 1;
+}
+
+.book-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transform: rotate(-0.35deg);   /* 整页极轻摆歪，横排字不僵硬 */
+  font-family: var(--ff-hand);
+  color: var(--ink-hand);
+}
+
+.book-page__kicker {
+  margin: 0 0 10px;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-body-sm);
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  color: rgba(58, 47, 38, 0.78);
+}
+
+.book-page__title {
+  margin: 0;
+  font-size: var(--fs-body);
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.05em;
+}
+
+.book-page__sub {
+  margin: 4px 0 0;
+  font-size: var(--fs-body-sm);
+  line-height: 1.5;
+  letter-spacing: 0.07em;
+  color: rgba(58, 47, 38, 0.76);
+}
+
+.book-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 每条留言只换倾斜角，不加边框/底色：像同一支笔在不同时间写的几行 */
+.book-page__msg {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transform: rotate(-1.2deg);
+}
+.book-page__msg:nth-child(2) { transform: rotate(0.9deg); }
+.book-page__msg:nth-child(3) { transform: rotate(-0.5deg); }
+
+.book-page__name {
+  font-size: var(--fs-body-sm);
+  line-height: 1.5;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: rgba(42, 58, 82, 0.86);
+}
+
+.book-page__tag {
+  margin-left: 7px;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-body-sm);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: rgba(58, 47, 38, 0.74);
+}
+
+.book-page__text {
+  font-size: var(--fs-body-sm);
+  line-height: 1.95;
+  letter-spacing: 0.02em;
+  text-indent: 1em;
+}
+
+.book-page__note {
+  margin: auto 0 0;
+  padding-top: 12px;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-body-sm);
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+  color: rgba(58, 47, 38, 0.72);
+}
+
+/* 次级文字 alpha 由实测 4.5:1 反解（纸面 #ece4d5），不靠目视微调。 */
+
+/* ============================================================
+   第七阶段：最终反思页（md 十一 / 第七阶段）
+   · 令牌写在这里而不是 tokens.css —— 本阶段的可改文件不含 tokens.css，
+     读写方式与其它令牌完全一致（js 用 msTok/cssVar 读）；
+   · 问题 21 world px、结束文字 18 world px、行高 1.7：反思页要"读得清"，
+     不是留言页那档 15px；
+   · 「继续」是文字按钮：无底色块、无图标，点击区高 44 world px，
+     焦点环用 currentColor，键盘 Enter/Space 由原生 button 提供。
+   ============================================================ */
+#notebook {
+  --dur-reflect: 1000ms;         /* 镜头移到笔记本（B2：800–1200ms） */
+  --dur-reflect-text: 320ms;     /* 问题出现 */
+  --dur-reflect-fade: 360ms;     /* 问题淡出（B6：300–450ms 降到 ≤0.05） */
+  --dur-reflect-in: 420ms;       /* 结束文字淡入 */
+  --dur-reflect-cover: 520ms;    /* 封面合上 */
+  --dur-reflect-camera: 1200ms;  /* 镜头拉回完整桌面 */
+  --dur-reflect-delay: 120ms;    /* 封面先动、镜头随后 */
+  --dur-finale: 1320ms;          /* = delay + camera（B7：总时长 1.2–1.8s） */
+  --del-finale: 1200ms;          /* 结束文字静置多久后进入最终动画 */
+  --ease-reflect: cubic-bezier(0.42, 0, 0.35, 1);  /* 起止速度为 0（B2） */
+}
+
+.book-reflect {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  transform: rotate(-0.35deg);
+  font-family: var(--ff-hand);
+  color: var(--ink-hand);
+}
+
+.book-reflect__q {
+  margin: 0 0 34px;
+  font-size: 21px;
+  line-height: 1.72;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+}
+
+.book-reflect__go {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 2px;
+  font-family: var(--ff-hand);
+  font-size: 17px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  color: var(--ink-hand);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  border-radius: 0;
+  cursor: pointer;
+}
+.book-reflect__go:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+
+.book-reflect__line {
+  margin: 0 0 22px;
+  /* P3：版心满宽 238px 时每行装 13 字，第三句正好断在"值|得"，把"值得"劈成两半。
+     收窄到 218px（12 字 = 208.09px 装得下，13 字 = 225.42px 装不下）后，
+     长句固定 12+6，断点落回"依然|值得被记录。"，字号行高都不动。 */
+  max-width: 218px;
+  font-size: 17px;         /* 返工 R2：18px 会把"普通的"切开且第二行只剩 6 字 */
+  line-height: 1.7;        /* 17 × 1.7 = 28.9px */
+  letter-spacing: 0.02em;
+}
+.book-reflect__line:last-child { margin-bottom: 0; }
+
+/* 反思位的"光衰减"（屏幕空间一层暗角）。
+   1.5× 把世界右缘（world 1920）推进画面：屏幕 x≈1417.5 之外是 #world-fit 之下的
+   暗底 rgb(29,22,17)，实测那 502px（宽 26%）恒为 luma 22–23，与桌面（luma 90–150）
+   之间是一条硬竖边。
+   机位被 B2 钉死（书写页要落在画面中心 ≤120px、scale ≤1.5）；世界宽度 1920 与
+   桌面样式（css/desk.css）都不属于本阶段可改范围，取景无法消掉这块空区，
+   所以用一层暗角把桌面接进暗底——只在反思/结束态由 js 淡入，最终动画一开始淡出。
+   z-index 55：高于最近可读纸（46）、低于 #reader-nav（70）。 */
+.reflect-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 55;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(29, 22, 17, 0) 0%,
+    rgba(29, 22, 17, 0) 63%,
+    rgba(29, 22, 17, 0.35) 68%,
+    rgba(29, 22, 17, 0.75) 71%,
+    rgb(29, 22, 17) 72.5%,
+    rgb(29, 22, 17) 100%
+  );
+}
+
+/* 离开阅读态（reflection / ended）时控件淡出用 240ms、比进场更短。
+   进场规则在 css/archive.css:693（is-live，320ms），本文件后加载，
+   只用 :not(.is-live) 覆盖退场，进场行为不变。 */
+#reader-nav:not(.is-live) {
+  transition: opacity 240ms ease, visibility 0s linear 240ms;
+}
+
+/* 翻页叶片：绕书脊（左缘）转 104°，正面贴旧页副本、背面是纸背。
+   过 90° 正面退场、背面接手；超过书脊的部分被 .page 的 overflow 裁掉，
+   所以书身足迹不变（P2 的 29.0% 读数不受影响）。 */
+.page-leaf {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: none;
+  transform-origin: 0 50%;
+  transform: rotateY(0deg);
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+.page-leaf.is-turning { display: block; }
+
+.page-leaf__face,
+.page-leaf__back {
+  position: absolute;
+  inset: 0;
+  border-radius: 1px 2px 2px 1px;
+  backface-visibility: hidden;
+}
+
+.page-leaf__face {
+  background-color: var(--paper-natural);
+  background-image:
+    linear-gradient(90deg, rgba(206, 186, 148, 0.40) 0%, rgba(206, 186, 148, 0.24) 56%, rgba(120, 102, 78, 0.10) 100%),
+    linear-gradient(96deg, var(--clear) 0 58%, var(--paper-fiber) 100%);
+  box-shadow:
+    inset 34px 0 26px -22px rgba(56, 38, 24, 0.42),
+    inset 1px 0 0 var(--paper-hairline),
+    6px 0 16px -6px rgba(48, 33, 22, 0.30);
+}
+
+.page-leaf__copy {
+  position: absolute;
+  inset: 0;
+  padding: 26px 28px 24px 46px;   /* 与 .page-inner 完全一致，副本才与旧页逐像素重合 */
+}
+
+.page-leaf__back {
+  transform: rotateY(180deg);
+  background-color: var(--paper-stack-300);
+  background-image: linear-gradient(90deg, var(--paper-stack-400) 0%, var(--paper-stack-200) 48%, var(--paper-stack-300) 100%);
+  box-shadow: inset 0 0 0 1px var(--paper-stack-edge);
+}

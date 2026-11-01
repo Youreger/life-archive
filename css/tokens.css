@@ -1,0 +1,277 @@
+/* ============================================================
+   tokens.css —— 《人生档案馆》设计令牌
+   本文件是全站唯一的“魔法数字”来源：
+   木色/桌面色阶、纸张色阶、墨色、字号阶梯、行高、阴影三档、
+   缓动与时长、层级 z-index、纹理原语、阅读位几何。
+   其它样式表只允许通过 var() 引用，不得写裸色值与裸字号。
+   ============================================================ */
+
+:root {
+  /* ---------- 0. 通用 ---------- */
+  --clear: rgba(0, 0, 0, 0);
+
+  /* ---------- 1. 木色 / 桌面色阶（中浅胡桃木） ---------- */
+  --wood-900: #3a2a1e;
+  --wood-800: #4a3625;
+  --wood-700: #5a442f;
+  --wood-600: #6e543a;
+  --wood-500: #836749;
+  --wood-400: #96795a;
+  --wood-300: #a98c6c;
+  --wood-200: #bb9f80;
+  --wood-100: #cbaf92;
+  --wood-050: #d9c2a7;
+
+  --desk-base: var(--wood-400);
+  --wood-grain-line: rgba(58, 42, 30, 0.13);
+  --wood-grain-fine: rgba(58, 42, 30, 0.075);
+  --wood-grain-sheen: rgba(232, 214, 190, 0.12);
+  --wood-figure-deep: rgba(60, 43, 30, 0.14);
+  --wood-figure-soft: rgba(84, 62, 43, 0.07);
+  --wood-figure-light: rgba(236, 220, 196, 0.08);
+
+  /* ---------- 2. 光线 ---------- */
+  --light-pool: rgba(255, 247, 231, 0.15);
+  --light-warm: rgba(255, 244, 226, 0.13);
+  --light-falloff: rgba(38, 26, 18, 0.16);
+  --light-mark: rgba(52, 36, 24, 0.10);
+
+  /* ---------- 3. 纸张色阶（三档，差异极小） ---------- */
+  --paper-natural: #f7f4ed;
+  --paper-warm: #f8f3e9;
+  --paper-cool: #f2f0ea;
+  --paper-hairline: rgba(120, 102, 80, 0.16);
+  --paper-edge-light: rgba(255, 253, 246, 0.9);
+  --paper-fiber: rgba(92, 75, 55, 0.05);
+  --paper-crease: rgba(120, 102, 78, 0.07);
+  --paper-stack-100: #efe6d5;
+  --paper-stack-200: #ece3d1;
+  --paper-stack-300: #e8dfcb;
+  --paper-stack-400: #e3d9c4;
+  --paper-stack-line: rgba(112, 92, 66, 0.17);
+  --paper-stack-line-soft: rgba(112, 92, 66, 0.11);
+  --paper-stack-edge: rgba(112, 92, 66, 0.24);
+
+  /* ---------- 4. 牛皮纸（信封） ---------- */
+  --kraft-900: #63502f;
+  --kraft-800: #77603c;
+  --kraft-700: #8a704a;
+  --kraft-600: #9c8157;
+  --kraft-500: #ac9168;
+  --kraft-400: #b89a72;
+  --kraft-300: #c6ab86;
+  --kraft-200: #d7c1a0;
+  --kraft-100: #e2d0b4;
+  --kraft-fiber: rgba(92, 70, 44, 0.06);
+  --kraft-crease: rgba(88, 66, 40, 0.09);
+  --kraft-wear: rgba(240, 226, 202, 0.28);
+  --kraft-fold: rgba(74, 54, 34, 0.20);
+  --kraft-fold-deep: rgba(74, 54, 34, 0.34);
+  --tag-paper: #dcc493;
+  --tag-paper-edge: #c9ae78;
+  --tag-paper-stain: rgba(150, 116, 62, 0.16);
+
+  /* ---------- 5. 布面笔记本 ---------- */
+  --cloth-900: #2b1d14;
+  --cloth-800: #38261b;
+  --cloth-700: #452e20;
+  --cloth-600: #523828;
+  --cloth-500: #5f4231;
+  --cloth-fiber: rgba(255, 232, 200, 0.05);
+  --cloth-hatch: rgba(20, 12, 8, 0.055);
+  --cloth-sheen: rgba(226, 198, 164, 0.09);
+  --cloth-wear: rgba(214, 186, 150, 0.16);
+  --cloth-shade: rgba(24, 15, 10, 0.30);
+
+  /* ---------- 6. 烫金 ---------- */
+  --gold-600: #96771f;
+  --gold-500: #b0912f;
+  --gold-400: #c6a54c;
+  --gold-300: #dcc478;
+  --foil-glow: rgba(255, 232, 168, 0.45);
+
+  /* ---------- 7. 陶瓷 / 金属 / 笔杆 ---------- */
+  --ceramic-100: #f2ede3;
+  --ceramic-200: #e8e1d4;
+  --ceramic-300: #dbd3c4;
+  --ceramic-400: #cbc2b1;
+  --ceramic-500: #b3a996;
+  --ceramic-shade: rgba(86, 74, 58, 0.18);
+  --ceramic-150: #e9e2d4;
+  --ceramic-ground: rgba(52, 38, 25, 0.30);
+  --ceramic-ground-soft: rgba(52, 38, 25, 0.14);
+
+  --metal-700: #6b6455;
+  --metal-500: #9a917d;
+  --metal-300: #c9c2ae;
+  --metal-100: #e6e1d3;
+
+  --pen-900: #2d2015;
+  --pen-700: #4a3421;
+  --pen-500: #63482d;
+  --pen-300: #7d5f3f;
+  --pen-fiber: rgba(30, 21, 13, 0.26);
+
+  /* ---------- 8. 墨色 ---------- */
+  --ink-title: #3a2f26;
+  --ink-body: #493f36;
+  --ink-muted: #6e6153;
+  --ink-hand: #2a3a52;
+  --ink-on-kraft: #332a20;
+  --ink-on-kraft-soft: #3d2e21;
+
+  /* ---------- 9. 舞台 / 遮罩 ---------- */
+  --stage-bg: #1d1611;
+  --scrim: rgba(18, 13, 10, 0.72);
+
+  /* ---------- 10. 字体族（本地优先，系统回退） ---------- */
+  --ff-serif: "Noto Serif SC", "Source Han Serif SC", "思源宋体", "STSong",
+    "华文宋体", "Songti SC", "SimSun", serif;
+  --ff-sans: "Noto Sans SC", "Source Han Sans SC", "思源黑体", "Microsoft YaHei",
+    "微软雅黑", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ff-hand: "LXGW WenKai", "霞鹜文楷", "KaiTi", "楷体", "STKaiti", "华文楷体",
+    "Kaiti SC", var(--ff-serif);
+
+  /* ---------- 11. 字号阶梯 ---------- */
+  --fs-display: 46px;
+  --fs-title: 32px;
+  --fs-title-sm: 26px;
+  --fs-h2: 22px;
+  --fs-body: 17px;
+  --fs-body-sm: 15px;
+  --fs-small: 13px;
+  --fs-caps: 12px;
+  --fs-micro: 11px;
+  --fs-hand: 18px;
+  --fs-hand-sm: 15px;
+  --fs-hand-lg: 22px;
+
+  /* ---------- 12. 行高 / 字距 ---------- */
+  --lh-tight: 1.24;
+  --lh-snug: 1.45;
+  --lh-normal: 1.62;
+  --lh-loose: 1.9;
+  --ls-caps: 0.22em;
+  --ls-wide: 0.08em;
+  --ls-normal: 0.01em;
+
+  /* ---------- 13. 阴影三档 ---------- */
+  --shadow-contact: 0 1px 2px rgba(48, 33, 22, 0.22),
+    0 3px 7px rgba(48, 33, 22, 0.14);
+  --shadow-lift: 0 6px 14px rgba(48, 33, 22, 0.16),
+    0 18px 40px rgba(48, 33, 22, 0.18);
+  --shadow-object: 0 12px 26px rgba(40, 27, 17, 0.22),
+    0 32px 64px rgba(40, 27, 17, 0.26);
+  --shadow-paper-inset: inset 0 0 0 1px var(--paper-hairline),
+    inset 0 -1px 0 var(--paper-edge-light);
+
+  /* ---------- 14. 缓动 / 时长 ---------- */
+  --ease-standard: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-out-soft: cubic-bezier(0.16, 0.84, 0.30, 1);
+  --ease-in-soft: cubic-bezier(0.55, 0, 0.85, 0.40);
+  --ease-paper: cubic-bezier(0.33, 0.09, 0.20, 1);
+  --dur-instant: 120ms;
+  --dur-fast: 220ms;
+  --dur-mid: 420ms;
+  --dur-slow: 760ms;
+  --dur-scene: 1800ms;
+
+  /* 第二阶段：展开四段 / 镜头推进 / 笔记本打开 / 阅读位 FLIP
+     四段总时长 = delTravel + durTravel + durLand = 995 + 415 + 250 = 1660ms
+     （落在 md 要求的 1.5~1.8s 内），封盖翻转与前两段重叠。 */
+  --dur-flap: 640ms;
+  --del-rise: 280ms;
+  --dur-rise: 515ms;
+  --del-travel: 995ms;
+  --dur-travel: 415ms;
+  --dur-land: 250ms;
+  --dur-camera: 900ms;
+  --dur-notebook: 730ms;
+  --dur-flip: 660ms;
+  /* 第五阶段：笔记本翻页（md:1041-1054 要求 0.5~0.6s 的轻微翻页动画）。
+     叶片绕书脊转 104°、新页在叶片遮住的后半段淡入，两支动画同一条时间线。 */
+  --dur-page: 560ms;
+  --ease-page: cubic-bezier(0.34, 0.06, 0.20, 1);
+  /* 纸叠落点：桌面中央偏左的 world 横坐标（md:455-460）。
+     信封矩形未出画时的右缘是 767，纸叠半宽 226，取 880 使纸叠落在
+     桌面中央偏左（帧宽 1920，中心 960），且不含信封袋口本身的像素。 */
+  --bundle-land-x: 880px;
+  --ease-flap: cubic-bezier(0.32, 0.06, 0.22, 1);
+  --ease-camera: cubic-bezier(0.30, 0.02, 0.18, 1);
+  --ease-cover: cubic-bezier(0.34, 0.02, 0.16, 1);
+  --ease-flip: cubic-bezier(0.28, 0.10, 0.16, 1);
+  --ease-settle: cubic-bezier(0.20, 0.70, 0.22, 1);
+
+  /* ---------- 15. 层级 z-index ---------- */
+  --z-desk: 0;
+  --z-desk-mark: 3;
+  --z-light: 8;
+  --z-prop-cup: 20;
+  --z-prop-pen: 22;
+  --z-notebook: 26;
+  --z-envelope: 30;
+  --z-bundle: 28;
+  --z-paper-6: 41;
+  --z-paper-5: 42;
+  --z-paper-4: 43;
+  --z-paper-3: 44;
+  --z-paper-2: 45;
+  --z-paper-1: 46;
+  --z-reader: 60;
+  --z-viewer: 100;
+
+  /* ---------- 16. 纹理原语（内联 SVG feTurbulence 噪点） ---------- */
+  --tex-grain: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g' x='0' y='0' width='220' height='220'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23g)'/%3E%3C/svg%3E");
+  --tex-fiber: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='f' x='0' y='0' width='140' height='140'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62 0.18' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23f)'/%3E%3C/svg%3E");
+  /* 低频木纹：整幅一次性栅格化，大块起伏，无周期、无拼接边界 */
+  --tex-wood: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'%3E%3Cfilter id='w' x='0' y='0' width='1920' height='1080'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0009 0.0042' numOctaves='3' seed='23' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='0.86' intercept='0.07'/%3E%3CfeFuncG type='linear' slope='0.86' intercept='0.07'/%3E%3CfeFuncB type='linear' slope='0.86' intercept='0.07'/%3E%3CfeFuncA type='linear' slope='0' intercept='1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='1920' height='1080' filter='url(%23w)'/%3E%3C/svg%3E");
+  /* 高频木纹细纹：只补微质感，使用时 opacity ≤ 0.25 */
+  --tex-wood-fine: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'%3E%3Cfilter id='f' x='0' y='0' width='1920' height='1080'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0005 0.011' numOctaves='3' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='0.84' intercept='0.08'/%3E%3CfeFuncG type='linear' slope='0.84' intercept='0.08'/%3E%3CfeFuncB type='linear' slope='0.84' intercept='0.08'/%3E%3CfeFuncA type='linear' slope='0' intercept='1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='1920' height='1080' filter='url(%23f)'/%3E%3C/svg%3E");
+  --tex-cloth: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Cfilter id='c' x='0' y='0' width='64' height='64'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9 0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='64' height='64' filter='url(%23c)'/%3E%3C/svg%3E");
+
+  /* ---------- 17. 逻辑画布与阅读位几何 ---------- */
+  --canvas-w: 1920px;
+  --canvas-h: 1080px;
+  --stage-scale: 1;
+  /* 阅读位：A4 纵向 210:297，高度 900 world px（宽 636.4）
+     900 × 17/914 ≈ 16.7px 每行基准；正文 --fs-body 17px 时
+     一行约占纸张高度的 1.86%，投影缩放下仍清晰可读。 */
+  --reader-paper-w: 636px;
+  --reader-paper-h: 900px;
+  --reader-anchor-x: 900px;
+  --reader-anchor-y: 540px;
+
+  /* ---------- 18. 档案纸面坐标空间（第三阶段排版） ----------
+     .sheet 是 636×900 的"纸面坐标空间"：排版与字号一律用纸面 px 写，
+     由 (--sheet-scale-x, --sheet-scale-y) 精确压进 .paper-content 的
+     410×608 布局盒；FLIP 后 world 471.11×666.67，再乘镜头 1.35，
+     净换算 纸面 px : canvas px = 1 : 1（文字按原尺寸栅格化，不发虚）。 */
+  --sheet-w: 636px;
+  --sheet-h: 900px;
+  --sheet-scale-x: 0.6446541;
+  --sheet-scale-y: 0.6755556;
+  --sheet-pad-x: 46px;
+  --sheet-pad-top: 54px;
+  --sheet-pad-bottom: 72px;
+  --sheet-foot-bottom: 28px;
+
+  /* 纸面内线条与底纹 */
+  --pf-rule: rgba(120, 102, 80, 0.28);
+  --pf-rule-soft: rgba(120, 102, 80, 0.16);
+  --pf-wash: rgba(158, 134, 102, 0.10);
+  --pf-relief: 0 2px 5px rgba(48, 33, 22, 0.16);
+
+  /* 聊天面板（03 / 04 共用） */
+  --im-bg: #ece4d6;
+  --im-bubble: #fbf8f1;
+  --im-bubble-tint: #eee6d8;
+
+  /* 纸面字号阶梯（纸面 px） */
+  --fs-paper-title: 30px;
+  --fs-paper-lead: 17px;
+  --fs-paper-body: 17px;
+  --fs-paper-sub: 15px;
+  --fs-paper-note: 13px;
+  --lh-reading: 1.68;
+  --lh-bubble: 1.52;
+}

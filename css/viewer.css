@@ -1,0 +1,162 @@
+/* ============================================================
+   viewer.css —— 图片查看器（第六阶段，md:1170-1211）
+   #viewer-overlay 是 #stage 的直接子元素、位于 #world-fit 之外：
+   本层坐标就是视口坐标，不受 S=min(w/1920,h/1080) 与 #camera 影响，
+   所以放大/归位直接用 getBoundingClientRect 的屏幕值（与档案纸
+   flipTo() 的 world 口径相反，别混）。
+   放大块沿用档案纸的观感：纸色 + 纤维底纹 + 1px 压线 + 轻投影，
+   直角、不做圆角卡片、不做毛玻璃；遮罩只"轻微变暗"（md:1180）。
+   ============================================================ */
+
+:root {
+  /* 本阶段独有的四个量，集中一处；js/viewer.js 只读不写死 */
+  --dur-viewer-open: 340ms;            /* md:1185 打开 300–400ms */
+  --dur-viewer-close: 260ms;           /* md:1197 关闭 250–350ms */
+  --viewer-scrim: rgba(24, 17, 11, 0.38);   /* 明度约 62%：纸面仍可辨 */
+  --viewer-close-size: 44px;           /* md:1189 关闭按钮，验收下限 */
+  --viewer-max-w: 78%;                 /* 放大上限（视口比例） */
+  --viewer-max-h: 82%;
+  --viewer-close-margin: 14px;         /* 关闭按钮到放大块上/右边缘的距离，与取样框无关 */
+  --viewer-inset-min: 76px;            /* 取样框最小内边距：要让开关闭按钮的整条带
+                                          （44 按钮 + 14 外边距 + 18 呼吸），
+                                          与 --viewer-close-margin 各写各的，互不推导 */
+}
+
+/* main.css 给本层铺了 --scrim(0.72)，太暗；遮罩改由 .viewer__scrim 承担，
+   这样整层不做 opacity 过渡，放大中的纸面不会被一起压暗。 */
+#viewer-overlay {
+  background: none;
+  background-color: var(--clear);
+  overflow: hidden;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+#viewer-overlay.is-open { display: block; }
+
+.viewer__scrim {
+  position: absolute;
+  inset: 0;
+  background-color: var(--viewer-scrim);
+  opacity: 0;                          /* 打开时由 WAAPI 推到 1 */
+}
+
+/* 放大块：JS 每帧写 left/top/width/height（屏幕坐标），
+   位移与缩放只走 transform（transform-origin:0 0 ⇒ 与源 rect 直接对得上） */
+.viewer {
+  position: absolute;
+  overflow: hidden;
+  transform-origin: 0 0;
+  /* 暖纸面：与阅读纸同族（比桌面亮一档、比纯白暖），不做圆角、不做重投影。
+     底色取 --paper-warm（此前是 --paper-stack-300，块底比阅读纸暗 4.9 L*、
+     肉眼看是"另一张纸"；换后在 200×200 平坦窗内与纸条面差 2 L* 以内）。
+     纸纤维不再铺在本体上——本体尺寸随素材放大到 1500×750 时，140px 的纤维 tile
+     会被读成粗砂纸（实测块内 std 9.31，隔壁纸面只有 2.51）；高频质感改由
+     ::before 以低不透明度叠一层，低频起伏留在本体的斜向暖调上。 */
+  background-color: var(--paper-warm);
+  background-image: linear-gradient(150deg, rgba(206, 186, 148, 0.10) 0%, rgba(206, 186, 148, 0.03) 46%, rgba(120, 96, 64, 0.05) 100%);
+  box-shadow: inset 0 0 0 1px var(--paper-hairline), var(--shadow-lift);
+  will-change: transform;
+}
+
+/* 高频纸纤维：低不透明度叠层。0.26 是实测出来的（块内 std 落在纸与桌面之间），
+   不是目视微调值；删掉这一层会退化成"纯色板"（std < 1.6）。 */
+.viewer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--tex-fiber);
+  background-size: 140px 140px;
+  opacity: 0.26;
+  pointer-events: none;
+}
+
+/* 取样框：让"一大片空白 + 一个字标"读作待填的素材位，而不是忘了放内容。
+   内边距由 JS 写 --viewer-inset = max(块高 4%, --viewer-inset-min)：下限保证虚线
+   整条让开关闭按钮（此前 inset=30px 时按钮压在虚线上，实测相交 28×28=784px²），
+   四角因此都是留白。颜色只用既有墨色，虚线不加动画。 */
+.viewer::after {
+  content: "";
+  position: absolute;
+  inset: var(--viewer-inset, 76px);
+  border: 1px dashed var(--ink-muted);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* 占位面：与纸面素材位同一口径（物件名 + 示例占位），放大后仍是纸面 */
+.viewer__ph {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+}
+.viewer__name {
+  font-family: var(--ff-serif);
+  /* 随块高缩放（JS 写 --viewer-name-size = max(22px, 0.044×块高)）：
+     748px 高的放大块里 26px 的绝对字号会读成空场 */
+  font-size: var(--viewer-name-size, var(--fs-title-sm));
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-normal);
+  color: var(--ink-title);
+}
+.viewer__tag {
+  font-family: var(--ff-sans);
+  font-size: var(--viewer-tag-size, var(--fs-small));
+  line-height: 1;
+  letter-spacing: var(--ls-caps);
+  color: var(--ink-muted);
+}
+
+/* 真图叠层：png 到位时盖住占位面；载入失败只隐藏自己，布局零变化 */
+.viewer__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.viewer__img.is-missing { visibility: hidden; }
+
+/* 关闭按钮：与信封面同族的纸片小方，交叉双条用 currentColor 画（不用 emoji）。
+   点击区 = 44×44 视口 px；双条与纸面明度差 ≈12:1。 */
+.viewer__close {
+  position: absolute;
+  z-index: 3;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  line-height: 0;
+  width: var(--viewer-close-size);
+  height: var(--viewer-close-size);
+  background-color: var(--paper-natural);
+  background-image: var(--tex-fiber);
+  background-size: 100px 100px;
+  box-shadow: inset 0 0 0 1px var(--paper-hairline), 0 1px 3px rgba(48, 33, 22, 0.22);
+  color: var(--ink-title);
+  cursor: pointer;
+  opacity: 0;                          /* 动画收尾才显影，不让它在缩放帧里变形 */
+  transition: background-color var(--dur-instant) var(--ease-standard);
+}
+.viewer__close.is-live { opacity: 1; }
+.viewer__close::before,
+.viewer__close::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 17px;
+  height: 2px;
+  background-color: currentColor;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.viewer__close::after { transform: translate(-50%, -50%) rotate(-45deg); }
+.viewer__close:hover { background-color: var(--paper-warm); }
+.viewer__close:focus-visible { outline: 2px solid var(--ink-title); outline-offset: 2px; }

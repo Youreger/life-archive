@@ -1,0 +1,79 @@
+/* ============================================================
+   main.css —— 舞台、逻辑画布与统一缩放容器
+   #stage （适配视口） > #world-fit（1920×1080，scale(S)）
+                       > #camera（镜头层，本阶段恒等）
+                       > #desk-world（桌面场景）
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+html {
+  background: var(--stage-bg);
+}
+
+body {
+  background: var(--stage-bg);
+  color: var(--ink-body);
+  font-family: var(--ff-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-normal);
+  letter-spacing: var(--ls-normal);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--stage-bg);
+}
+
+/* 固定逻辑画布：宽度高度写死，缩放与居中全部由 transform 完成，
+   不出现任何 vw/vh 尺寸计算。transform-origin 取左上角，
+   位移补偿 (视口 − 画布×S)/2 由 main.js 计算后写入。 */
+#world-fit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--canvas-w);
+  height: var(--canvas-h);
+  transform-origin: 0 0;
+  transform: translate(0px, 0px) scale(1);
+  will-change: transform;
+}
+
+/* 镜头层：本阶段恒等变换，仅预留布局位。 */
+#camera {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+#desk-world {
+  position: absolute;
+  inset: 0;
+}
+
+/* 图片查看器遮罩：本阶段恒等隐藏，第六阶段实现。 */
+#viewer-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-viewer);
+  display: none;
+  background: var(--scrim);
+}

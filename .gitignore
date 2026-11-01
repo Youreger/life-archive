@@ -1,0 +1,17 @@
+# 操作系统 / 资源管理器
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# 编辑器 / IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# 构建产物与依赖
+node_modules/
+dist/
+
+# 日志与临时文件
+*.log

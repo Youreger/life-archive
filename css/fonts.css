@@ -1,0 +1,24 @@
+/* ============================================================
+   fonts.css —— 本地字体声明（离线可用，不依赖任何外网 CDN）
+   字体文件位于 assets/fonts/，全部为 CSS 相对路径引用。
+   字体栈与回退顺序见 tokens.css 的 --ff-serif / --ff-sans / --ff-hand。
+   ============================================================ */
+
+@font-face {
+  font-family: "Noto Serif SC";
+  src: url("../assets/fonts/NotoSerifSC-VF.ttf") format("truetype");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Noto Sans SC";
+  src: url("../assets/fonts/NotoSansSC-VF.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 手写体：优先本地 LXGW WenKai（本机未取到，见交付报告），
+   回退到系统楷体（KaiTi / 楷体 / STKaiti / 华文楷体），由 --ff-hand 承担。 */

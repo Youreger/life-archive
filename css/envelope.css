@@ -1,0 +1,291 @@
+/* ============================================================
+   envelope.css —— 牛皮纸档案袋（复古文件袋）
+   DOM：#envelope > .back-panel / .inner-pocket / .front-flap
+   纸叠 #paper-bundle 是 #envelope 的兄弟节点（z-index 低于信封本体），
+   因此 .inner-pocket 的 overflow 裁切只作用于信封自身，绝不会裁到六张档案纸；
+   纸叠整体合拢在封盖之内，屏幕上不出现任何纸边。
+   封盖高度 = 210 / 680 ≈ 30.9%（要求 28%~34%），本阶段 rotateX(0deg) 合拢。
+   ============================================================ */
+
+.envelope {
+  position: absolute;
+  /* 490×680 本体（旋转 2.4° 后 AABB ≈ 518×700，落在要求的 470~520 / 680~720 内），
+     中心固定在 world 508,540，纸叠与它同心。 */
+  left: 263px;
+  top: 200px;
+  width: 490px;
+  height: 680px;
+  z-index: var(--z-envelope);
+  transform: rotate(2.4deg);
+  transform-origin: 50% 50%;
+  perspective: 1400px;
+}
+
+/* 背板：比正面略大，露出右侧与下侧的厚度边 */
+.back-panel {
+  position: absolute;
+  inset: 5px -7px -7px 5px;
+  z-index: 1;
+  border-radius: 2px;
+  background-image: linear-gradient(182deg, var(--kraft-700) 0%, var(--kraft-600) 58%, var(--kraft-500) 100%);
+  box-shadow: var(--shadow-object);
+}
+
+/* 内衬口袋 = 信封正面（印有文字的一面） */
+.inner-pocket {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: 2px;
+  overflow: hidden;
+  background-color: var(--kraft-400);
+  background-image:
+    radial-gradient(620px 420px at 20% 6%, var(--kraft-wear), var(--clear) 62%),
+    linear-gradient(184deg, var(--kraft-300) 0%, var(--kraft-400) 46%, var(--kraft-500) 100%);
+  box-shadow: var(--shadow-contact), inset 0 0 0 1px var(--kraft-fold);
+}
+
+/* 纸张纤维 + 少量自然折痕（固定角度，非随机） */
+.inner-pocket::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image:
+    linear-gradient(101.5deg, var(--clear) 46.4%, var(--kraft-crease) 46.4% 47.2%, var(--clear) 47.2%),
+    linear-gradient(76deg, var(--clear) 71.2%, var(--kraft-crease) 71.2% 71.9%, var(--clear) 71.9%),
+    var(--tex-fiber);
+  background-size: auto, auto, 140px 140px;
+  mix-blend-mode: multiply;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.pocket-face {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+/* 左上角：PERSONAL ARCHIVE */
+.pocket-kicker {
+  position: absolute;
+  left: 34px;
+  top: 264px;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-caps);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-caps);
+  color: var(--ink-on-kraft-soft);
+  text-transform: uppercase;
+}
+
+/* 上方中央：林予安 · 个人档案 */
+.pocket-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 298px;
+  margin: 0;
+  text-align: center;
+  font-family: var(--ff-serif);
+  font-weight: 600;
+  font-size: var(--fs-title-sm);
+  line-height: var(--lh-tight);
+  letter-spacing: 0.04em;
+  color: var(--ink-on-kraft);
+}
+
+/* 下方：2026 / 001 */
+.pocket-code {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 545px;
+  text-align: center;
+  font-family: var(--ff-sans);
+  font-size: var(--fs-body-sm);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-caps);
+  color: var(--ink-on-kraft-soft);
+}
+
+/* 右下角：略泛黄的小手写标签「大学生活」
+   字号 --fs-hand-lg 22px（em 高 22px world），外框约 122×45，
+   满足"字高 ≥18px、标签 ≥96×44"。 */
+.pocket-tag {
+  position: absolute;
+  right: 26px;
+  bottom: 52px;
+  padding: 11px 17px 12px;
+  transform: rotate(-3.5deg);
+  transform-origin: 50% 50%;
+  font-family: var(--ff-hand);
+  font-size: var(--fs-hand-lg);
+  line-height: 1;
+  color: var(--ink-hand);
+  background-color: var(--tag-paper);
+  background-image:
+    radial-gradient(78px 46px at 78% 22%, var(--tag-paper-stain), var(--clear) 72%),
+    linear-gradient(168deg, var(--tag-paper) 0%, var(--tag-paper-edge) 100%);
+  box-shadow: var(--shadow-contact);
+}
+
+/* 两侧折叠式风琴边（从封盖下沿开始，避免被盖面压住） */
+.pocket-gusset {
+  position: absolute;
+  top: 232px;
+  bottom: 30px;
+  width: 15px;
+  background-image: repeating-linear-gradient(90deg, var(--kraft-500) 0 2px, var(--kraft-300) 2px 4px);
+  opacity: 0.5;
+}
+
+.pocket-gusset--left {
+  left: 0;
+  box-shadow: inset -7px 0 8px -7px var(--kraft-fold);
+}
+
+.pocket-gusset--right {
+  right: 0;
+  box-shadow: inset 7px 0 8px -7px var(--kraft-fold);
+}
+
+/* 厚实的底部折边 */
+.pocket-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30px;
+  background-image: linear-gradient(180deg, var(--kraft-600) 0%, var(--kraft-700) 64%, var(--kraft-800) 100%);
+  box-shadow: inset 0 1px 0 var(--kraft-fold), inset 0 3px 5px -3px var(--kraft-fold);
+}
+
+/* 信封盖：独立 3D 翻转层，本阶段合拢（第二阶段绕上边缘翻转到 155°~180°）
+   高 210 / 信封 680 = 30.9%，下沿压在口袋上并投出折边阴影。 */
+.front-flap {
+  position: absolute;
+  /* 左右各超出口袋 5px（500 vs 490），读作"一个盖在口袋外面的盖子" */
+  left: -5px;
+  top: -2px;
+  width: 500px;
+  height: 210px;
+  z-index: 5;
+  transform-origin: 50% 0;
+  transform: rotateX(0deg);
+  /* preserve-3d：盖面与内衬是两个独立平面，翻转过 90° 时由 backface-visibility
+     交接，屏幕上始终有一片牛皮纸，不会整片消失（md:305-320）。 */
+  transform-style: preserve-3d;
+
+}
+
+.flap-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 2px 2px 3px 3px;
+  /* 与口袋同族的牛皮纸纤维：低频起伏 + 两种尺度的细纤维（无等距条纹），
+     全部来自 feTurbulence 噪点，soft-light 叠加，不引入周期。 */
+  background-color: var(--kraft-400);
+  background-image:
+    var(--tex-grain),
+    var(--tex-fiber),
+    radial-gradient(360px 200px at 26% 10%, var(--kraft-wear), var(--clear) 72%),
+    linear-gradient(100.4deg, var(--clear) 41.2%, var(--kraft-crease) 41.2% 41.7%, var(--clear) 41.7%),
+    linear-gradient(76.8deg, var(--clear) 68.4%, var(--kraft-crease) 68.4% 68.9%, var(--clear) 68.9%),
+    linear-gradient(180deg, var(--kraft-300) 0%, var(--kraft-400) 22%, var(--kraft-500) 58%, var(--kraft-600) 100%);
+  background-size: 220px 220px, 140px 140px, auto, auto, auto, auto;
+  background-blend-mode: soft-light, soft-light, normal, normal, normal, normal;
+  box-shadow:
+    inset 0 1px 0 var(--kraft-wear),
+    inset 0 -18px 16px -14px var(--kraft-fold),
+    inset 0 -3px 3px -2px var(--kraft-fold-deep),
+    0 6px 12px -8px rgba(30, 20, 12, 0.50),
+    0 18px 28px -20px rgba(30, 20, 12, 0.40);
+  backface-visibility: hidden;
+}
+
+/* 折边高光：封盖下沿的一道亮线，是"合拢"读感的关键 */
+.flap-face::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background-image: linear-gradient(180deg, var(--kraft-100) 0%, var(--kraft-500) 100%);
+  box-shadow: 0 1px 0 var(--kraft-wear);
+  pointer-events: none;
+}
+
+/* 盖沿投在口袋上的折边阴影：必须挂在 .flap-face 的子伪元素上。
+   .front-flap 自身处在 preserve-3d 上下文里，它的背景与 box-shadow 会被
+   .inner-pocket 压到后面（已实测：给 .front-flap 加半透明蓝底，屏幕上完全不可见），
+   而 .flap-face 及其子节点正常绘制在口袋之上。 */
+.flap-face::before {
+  content: "";
+  position: absolute;
+  /* 左右各内缩 5px，暗带正好落在口袋宽度之内，不会糊到桌面上 */
+  left: 5px;
+  right: 5px;
+  top: 100%;
+  height: 52px;
+  background-image:
+    linear-gradient(180deg, rgba(34, 22, 12, 0.55) 0%, rgba(46, 31, 17, 0.44) 26%,
+                    rgba(58, 40, 23, 0.26) 58%, rgba(72, 51, 30, 0.10) 84%, transparent 100%);
+  pointer-events: none;
+}
+
+/* 封盖内衬（同一张纸的背面，比正面浅一档，md:316）：
+   .flap-face 过 90° 由 backface-visibility:hidden 退场，这一面接手。 */
+.front-flap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 2px 2px 3px 3px;
+  transform: rotateX(180deg);
+  backface-visibility: hidden;
+  background-color: var(--kraft-200);
+  background-image:
+    var(--tex-grain),
+    var(--tex-fiber),
+    radial-gradient(320px 180px at 34% 14%, var(--kraft-wear), var(--clear) 74%),
+    linear-gradient(182deg, var(--kraft-200) 0%, var(--kraft-300) 48%, var(--kraft-400) 100%);
+  background-size: 220px 220px, 140px 140px, auto, auto;
+  background-blend-mode: soft-light, soft-light, normal, normal;
+  box-shadow: inset 0 0 0 1px var(--kraft-fold), inset 0 -26px 20px -22px var(--kraft-fold);
+  pointer-events: none;
+}
+
+/* ============================================================
+   P2 返工 R3：纸叠落地后，交界必须读得清
+   R3-① 信封右缘（#envelope 右缘 = 纸叠被压住的边界）向纸叠投一条
+        2px 接触暗线 + 约 20px 的柔和过渡。暗线挂在 .inner-pocket 的
+        box-shadow 上：口袋 z-index 3、#envelope z-index 30 > 纸叠 28，
+        阴影自然落在纸面上，随信封一起缩放，不需要额外元素。
+   R3-② 纸叠自身的落地阴影在信封遮挡之外仍完整可读（右缘 x≈1106 world）。
+   ============================================================ */
+#envelope.is-opened .inner-pocket {
+  box-shadow:
+    var(--shadow-contact),
+    inset 0 0 0 1px var(--kraft-fold),
+    2px 0 0 0 rgba(30, 19, 11, 0.50),
+    12px 2px 18px -8px rgba(33, 21, 12, 0.46),
+    26px 6px 34px -16px rgba(38, 25, 14, 0.34);
+}
+
+#paper-bundle.is-landed .archive-item .paper-content {
+  box-shadow:
+    var(--shadow-paper-inset),
+    5px 0 10px -3px rgba(43, 29, 18, 0.34),
+    13px 0 22px -8px rgba(43, 29, 18, 0.22),
+    0 2px 3px rgba(48, 33, 22, 0.30),
+    0 9px 18px rgba(43, 29, 18, 0.26),
+    0 18px 30px rgba(40, 27, 17, 0.16);
+}
+
+/* 阴影在落地瞬间淡入，避免硬切 */
+.inner-pocket,
+#paper-bundle .archive-item .paper-content {
+  transition: box-shadow 240ms var(--ease-settle);
+}
