@@ -1,0 +1,201 @@
+{
+  "startedAt": "2026-11-03T05:46:35.392Z",
+  "viewport": "1600x900",
+  "tests": [
+    {
+      "name": "1. 六份档案切换全过程显示完整内容",
+      "pass": true,
+      "durationMs": 7689,
+      "details": [
+        {
+          "from": 1,
+          "to": 2,
+          "samples": 19
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "samples": 18
+        },
+        {
+          "from": 3,
+          "to": 4,
+          "samples": 20
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "samples": 19
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "samples": 19
+        }
+      ]
+    },
+    {
+      "name": "2. 当前纸右下角按钮与上一页/下一页",
+      "pass": true,
+      "durationMs": 3140,
+      "details": {
+        "navCount": 6,
+        "externalCount": 0,
+        "visibleNavs": 1,
+        "inFooter": true,
+        "rightAligned": true,
+        "verticalOverlap": true,
+        "prevDisabled": false,
+        "nextDisabled": false
+      }
+    },
+    {
+      "name": "4. 笔记本左右边缘独立前后翻页",
+      "pass": true,
+      "durationMs": 1243,
+      "details": {
+        "left": 5,
+        "right": 6
+      }
+    },
+    {
+      "name": "5. 独立翻页不改变当前档案",
+      "pass": true,
+      "durationMs": 608,
+      "details": {
+        "currentId": 6,
+        "notebookPage": 5,
+        "order": [
+          6,
+          5,
+          4,
+          3,
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "name": "6. 档案切换同步笔记本留言页",
+      "pass": true,
+      "durationMs": 952,
+      "details": {
+        "currentId": 5,
+        "notebookPage": 5,
+        "notebook": "open"
+      }
+    },
+    {
+      "name": "8. 快速连点互斥且状态不错乱",
+      "pass": true,
+      "durationMs": 2462,
+      "details": {
+        "flipBlockedArchive": true,
+        "finalId": 4,
+        "order": [
+          4,
+          5,
+          6,
+          3,
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "name": "2b. 第一份禁用上一份",
+      "pass": true,
+      "durationMs": 4565,
+      "details": {
+        "currentId": 1,
+        "prevDisabled": true
+      }
+    },
+    {
+      "name": "9. 桌面与主要物件视觉/素材完整",
+      "pass": true,
+      "durationMs": 450,
+      "details": {
+        "stage": "1600x900",
+        "envelope": {
+          "width": 582.8013305664062,
+          "height": 787.4129028320312,
+          "visibility": "visible",
+          "display": "block"
+        },
+        "bundle": {
+          "width": 508.4999694824219,
+          "height": 720,
+          "visibility": "visible",
+          "display": "block"
+        },
+        "notebook": {
+          "width": 378.326171875,
+          "height": 528.6231689453125,
+          "visibility": "visible",
+          "display": "block"
+        },
+        "sheets": 6,
+        "brokenImages": [],
+        "loadedImages": 6,
+        "horizontalOverflow": false
+      }
+    },
+    {
+      "name": "3. 第六份下一步进入最终结尾（结束文字停在页上等人工结束）",
+      "pass": false,
+      "durationMs": 5287,
+      "error": "Error: 结束文字后仍会自动跳转：{\"phase\":\"reading\",\"currentId\":6,\"order\":[6,5,4,3,2,1],\"envelope\":\"open\",\"archive\":\"extracted\",\"notebook\":\"open\",\"viewer\":\"closed\",\"reflection\":\"text\",\"switching\":false,\"notebookTurning\":false,\"pageId\":6,\"notebookMode\":\"ending\",\"locks\":{},\"generation\":0}\n    at assert (D:\\Project\\思政网页\\tests\\interaction-regression.cjs:20:27)\n    at D:\\Project\\思政网页\\tests\\interaction-regression.cjs:447:5\n    at async runTest (D:\\Project\\思政网页\\tests\\interaction-regression.cjs:148:21)\n    at async main (D:\\Project\\思政网页\\tests\\interaction-regression.cjs:425:3)"
+    },
+    {
+      "name": "3b. 点结束播放收纳并完整复位到 idle",
+      "pass": false,
+      "durationMs": 12014,
+      "error": "Error: 点结束后未回到 idle；最后读数：false\n    at waitFor (D:\\Project\\思政网页\\tests\\interaction-regression.cjs:31:9)\n    at async D:\\Project\\思政网页\\tests\\interaction-regression.cjs:457:5\n    at async runTest (D:\\Project\\思政网页\\tests\\interaction-regression.cjs:148:21)\n    at async main (D:\\Project\\思政网页\\tests\\interaction-regression.cjs:454:3)"
+    },
+    {
+      "name": "7. 结束复位后点击信封完整重开",
+      "pass": false,
+      "durationMs": 3054,
+      "error": "Error: 点击信封未重播开场；最后读数：false\n    at waitFor (D:\\Project\\思政网页\\tests\\interaction-regression.cjs:31:9)\n    at async D:\\Project\\思政网页\\tests\\interaction-regression.cjs:467:5\n    at async runTest (D:\\Project\\思政网页\\tests\\interaction-regression.cjs:148:21)\n    at async main (D:\\Project\\思政网页\\tests\\interaction-regression.cjs:465:3)"
+    },
+    {
+      "name": "10. 第二轮完整链路（读到 6 → 继续 → 三句 → 结束 → idle）",
+      "pass": false,
+      "durationMs": 12021,
+      "error": "Error: 第二轮未进入反思问题；最后读数：false\n    at waitFor (D:\\Project\\思政网页\\tests\\interaction-regression.cjs:31:9)\n    at async D:\\Project\\思政网页\\tests\\interaction-regression.cjs:485:5\n    at async runTest (D:\\Project\\思政网页\\tests\\interaction-regression.cjs:148:21)\n    at async main (D:\\Project\\思政网页\\tests\\interaction-regression.cjs:478:3)"
+    }
+  ],
+  "errors": [],
+  "failedRequests": [],
+  "finalState": {
+    "phase": "reading",
+    "currentId": 6,
+    "order": [
+      6,
+      5,
+      4,
+      3,
+      2,
+      1
+    ],
+    "envelope": "open",
+    "archive": "extracted",
+    "notebook": "open",
+    "viewer": "closed",
+    "reflection": "text",
+    "switching": false,
+    "notebookTurning": false,
+    "pageId": 6,
+    "notebookMode": "ending",
+    "locks": {},
+    "generation": 0
+  },
+  "consoleErrors": [],
+  "passed": 8,
+  "failed": 4,
+  "expectedOptionalImageFallbacks": 0,
+  "unexpectedRequests": [],
+  "unexpectedConsoleErrors": [],
+  "finishedAt": "2026-11-03T05:49:00.396Z"
+}

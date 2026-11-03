@@ -37,6 +37,7 @@
   var els = { notebook: null, cover: null, page: null, inner: null, leaf: null, leafFace: null };
   var rendered = 0;   /* 书写页上现在是哪一页：setPage 去重与 A4 的唯一依据 */
   var flipping = false;
+  var cancelActiveFlip = null;
   var flipLog = { flips: 0, last: null };
   /* 第七阶段：书写页当前显示什么 —— page = 某份档案的留言页；
      reflect = 最终反思的问题；ending = 结束文字。反思页不走 flip()。 */
@@ -69,10 +70,14 @@
   }
 
   function buildPage(d) {
+    /* 来源标签整页只出现一次（放在列表上方）：06 页有四条留言，
+       每条都带一行标签会多占四行、把 398px 高的内页撑破；name 为空表示
+       原文无署名，此时绝不渲染空姓名 span。 */
+    var src = (d.messages && d.messages.length && d.messages[0].tag) ? d.messages[0].tag : '';
     var msgs = (d.messages || []).map(function (m) {
+      var name = m.name ? '<span class="book-page__name">' + esc(m.name) + '</span>' : '';
       return '<li class="book-page__msg">'
-        + '<span class="book-page__name">' + esc(m.name)
-        + '<span class="book-page__tag">' + esc(m.tag) + '</span></span>'
+        + name
         + '<span class="book-page__text">' + esc(m.text) + '</span>'
         + '</li>';
     }).join('');
@@ -80,6 +85,7 @@
       + '<p class="book-page__kicker">' + esc(d.kicker) + '</p>'
       + '<p class="book-page__title">' + esc(d.title) + '</p>'
       + '<p class="book-page__sub">' + esc(d.sub) + '</p>'
+      + (src ? '<p class="book-page__src">' + esc(src) + '</p>' : '')
       + '<ul class="book-page__list">' + msgs + '</ul>'
       + '<p class="book-page__note">' + esc(d.note) + '</p>'
       + '</div>';
@@ -94,8 +100,16 @@
   }
 
   /* ---------- 翻页 ---------- */
+  function syncTurning(on) {
+    if (Archive.state) { Archive.state.notebookTurning = on === true; }
+    if (Archive.archive && Archive.archive.refreshNav) { Archive.archive.refreshNav(); }
+  }
+
   function resetLeaf() {
     if (!els.leaf) { return; }
+    els.leaf.getAnimations().forEach(function (a) {
+      try { a.cancel(); } catch (e) { /* 已取消 */ }
+    });
     els.leaf.classList.remove('is-turning');
     els.leaf.style.transform = '';
     els.leaf.style.filter = '';
@@ -145,6 +159,8 @@
       resetLeaf();
       rendered = id;
       flipping = false;
+      cancelActiveFlip = null;
+      syncTurning(false);
       if (ok) {
         flipLog.flips += 1;
         flipLog.last = { to: id, total: Math.round(window.performance.now() - startedAt), dur: dur };
@@ -154,6 +170,8 @@
     }
 
     flipping = true;
+    syncTurning(true);
+    cancelActiveFlip = function () { return finish(false, true); };
     try {
       /* 叶片正面贴的是"刚翻过去那一页"的副本：翻起来的必须是旧页，
          否则用户看到的是一张空白纸飞过去。新页恒 1.0 不透明躺在叶片
@@ -190,13 +208,32 @@
     if (target < PAGE_MIN) { target = PAGE_MIN; }
     if (target > PAGE_MAX) { target = PAGE_MAX; }
     if (mode !== 'page') { return false; }                /* 反思/结束页在页上时不许被换纸覆盖 */
+    if (flipping) { return false; }                       /* 翻页途中不排队，也不偷偷换目标页 */
     if (target === rendered) { return false; }            /* md:1278 同一目标页不重复翻页 */
     var open = !!Archive.state && Archive.state.notebook === 'open';
-    if (!open || flipping) {                              /* 合着 / 正在翻：只更新，不加动画 */
+    if (!open) {                                          /* 合着：只更新，不打开、不加动画 */
       render(target);
       return false;
     }
     return flip(target);
+  }
+
+  /* 笔记本左右边缘只翻自己的书写页，不改 Archive.state.currentId。 */
+  function turnPage(dir) {
+    if (!Archive.can('turn-page') || mode !== 'page' || flipping) { return false; }
+    var target = rendered + (dir < 0 ? -1 : 1);
+    if (target < PAGE_MIN || target > PAGE_MAX) { return false; }
+    return setPage(target);
+  }
+
+  function reset() {
+    if (cancelActiveFlip) { cancelActiveFlip(); }
+    resetLeaf();
+    flipping = false;
+    cancelActiveFlip = null;
+    mode = 'page';
+    syncTurning(false);
+    return render(1);
   }
 
   /* ---------- 第七阶段：最终反思页（md 十一） ----------
@@ -205,6 +242,8 @@
   var TEXT = {
     question: '如果你的生活也被整理成一份档案，你希望留下什么？',
     go: '继续',
+    /* 第七阶段结尾的人工触发（用户决策 m01847）：结束文字停住，点它才走完整收纳 */
+    end: '结束',
     ending: [
       '档案整理完毕。',
       '每个人的人生都由许多普通的瞬间组成。',
@@ -273,7 +312,7 @@
     els.inner.innerHTML = '';
     var block = reflectNode('end', TEXT.ending.map(function (line) {
       return '<p class="book-reflect__line">' + esc(line) + '</p>';
-    }).join(''));
+    }).join('') + '<button type="button" class="book-reflect__end">' + esc(TEXT.end) + '</button>');
     els.inner.appendChild(block);
     return fadeIn(block, '--dur-reflect-in', 420);
   }
@@ -302,9 +341,30 @@
 
   function onInnerClick(ev) {
     var t = ev.target;
-    if (!t || !t.closest || !t.closest('.book-reflect__go')) { return; }
-    var fn = Archive.archive && Archive.archive.requestContinue;
-    if (typeof fn === 'function') { fn('button'); }
+    if (!t || !t.closest) { return; }
+    /* 问题页的「继续」 */
+    if (t.closest('.book-reflect__go')) {
+      var fn = Archive.archive && Archive.archive.requestContinue;
+      if (typeof fn === 'function') { fn('button'); }
+      return;
+    }
+    /* 结束页的「结束」：直接进第八阶段的完整收纳（js/state.js 的 finish-archive gate） */
+    if (t.closest('.book-reflect__end')) {
+      var st = Archive.state;
+      var fin = (st && typeof st.requestFinish === 'function')
+        ? st.requestFinish
+        : (Archive.archive && Archive.archive.requestFinish);
+      if (typeof fin === 'function') { fin(); }
+    }
+  }
+
+  function onPageClick(ev) {
+    if (!els.page || (ev.target.closest && ev.target.closest('button'))) { return; }
+    var rect = els.page.getBoundingClientRect();
+    if (!rect.width) { return; }
+    var x = (ev.clientX - rect.left) * els.page.offsetWidth / rect.width;
+    if (x <= 30) { turnPage(-1); }
+    else if (x >= els.page.offsetWidth - 30) { turnPage(1); }
   }
 
   /* ---------- 打开 ---------- */
@@ -313,6 +373,7 @@
     var st = Archive.state;
     if (!A || !els.cover) { return Promise.resolve(false); }
     if (!Archive.can('open-notebook')) { return Promise.resolve(false); }
+    render(st.currentId || 1);
     var t = A.time();
     return A.withLock('notebook', function () {
       var a = A.anim(els.cover, [
@@ -350,6 +411,9 @@
     }
     els.leafFace = els.leaf.querySelector('.page-leaf__copy');
     els.inner.addEventListener('click', onInnerClick);
+    /* 左缘的书脊覆盖在 .page 之上；在笔记本容器接收点击，
+       仍按 .page 的实际边缘判定，避免左 30px 被书脊吃掉。 */
+    els.notebook.addEventListener('click', onPageClick);
     return true;
   }
 
@@ -366,6 +430,9 @@
     boot: boot,
     open: open,
     setPage: setPage,
+    turnPage: turnPage,
+    reset: reset,
+    isTurning: function () { return flipping; },
     render: render,
     pageId: function () { return rendered; },
     flipLog: flipLog,

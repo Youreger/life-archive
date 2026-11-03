@@ -14,8 +14,8 @@
   --dur-viewer-close: 260ms;           /* md:1197 关闭 250–350ms */
   --viewer-scrim: rgba(24, 17, 11, 0.38);   /* 明度约 62%：纸面仍可辨 */
   --viewer-close-size: 44px;           /* md:1189 关闭按钮，验收下限 */
-  --viewer-max-w: 78%;                 /* 放大上限（视口比例） */
-  --viewer-max-h: 82%;
+  --viewer-max-w: 84%;                 /* 放大上限（视口比例） */
+  --viewer-max-h: 84%;
   --viewer-close-margin: 14px;         /* 关闭按钮到放大块上/右边缘的距离，与取样框无关 */
   --viewer-inset-min: 76px;            /* 取样框最小内边距：要让开关闭按钮的整条带
                                           （44 按钮 + 14 外边距 + 18 呼吸），
@@ -84,7 +84,7 @@
   pointer-events: none;
 }
 
-/* 占位面：与纸面素材位同一口径（物件名 + 示例占位），放大后仍是纸面 */
+/* 占位面：与纸面素材位同一口径（只留物件名暗纹），放大后仍是纸面 */
 .viewer__ph {
   position: absolute;
   inset: 0;
@@ -113,13 +113,17 @@
   color: var(--ink-muted);
 }
 
-/* 真图叠层：png 到位时盖住占位面；载入失败只隐藏自己，布局零变化 */
+/* 真图叠层：png 到位时盖住占位面；载入失败只隐藏自己，布局零变化。
+   crop 与纸面 .asset-slot__img 完全同一套算式：容器的 aspect-ratio 由
+   js/viewer.js 按 crop 后的比例写定，img 按 1/--crop-* 放大再反向偏移，
+   于是放大后显示的仍是纸面上那一块区域，且保原图比例、不拉伸。 */
 .viewer__img {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  left: calc(-1 * var(--crop-x, 0) * 100% / var(--crop-w, 1));
+  top: calc(-1 * var(--crop-y, 0) * 100% / var(--crop-h, 1));
+  width: calc(100% / var(--crop-w, 1));
+  height: calc(100% / var(--crop-h, 1));
+  object-fit: contain;
   display: block;
 }
 .viewer__img.is-missing { visibility: hidden; }

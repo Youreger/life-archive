@@ -32,6 +32,16 @@
   transform: rotate(-1.8deg);
   transform-origin: 50% 50%;
   perspective: 1500px;
+
+  /* 笔记本自己的字号阶梯：不复用屏幕级的 --fs-body / --fs-body-sm ——
+     那两个令牌同时被 css/main.css 与 css/envelope.css 消费，直接抬高会
+     连带信封与主画布一起变。改这里只影响笔记本。 */
+  --nb-kicker: 16px;   /* 页眉小字：第 0N 页 · 主题 */
+  --nb-title: 21px;    /* 页标题 */
+  --nb-sub: 17px;      /* 副题 / 主题行 */
+  --nb-src: 16px;      /* 落款、署名、标签 */
+  --nb-msg: 18px;      /* 留言正文 */
+  --nb-note: 15px;     /* 页脚注记 */
 }
 
 /* 书身：比封面略大的硬壳厚度 */
@@ -177,7 +187,7 @@
   text-align: center;
   font-family: var(--ff-serif);
   font-weight: 600;
-  font-size: var(--fs-body-sm);
+  font-size: var(--nb-src);
   line-height: 1.2;
   letter-spacing: 0.18em;
   backface-visibility: hidden;
@@ -218,7 +228,7 @@
   inset: 0;
   z-index: 2;
   overflow: hidden;
-  padding: 26px 28px 24px 46px;
+  padding: 26px 28px 20px 46px;
   /* 返工 R1(a)：新页不靠整页透明度出现。叶片正面贴旧页副本盖在上面，
      叶片转开多少就露出多少，所以这里必须恒为 1（不做任何 opacity 动画）。 */
   opacity: 1;
@@ -234,9 +244,9 @@
 }
 
 .book-page__kicker {
-  margin: 0 0 10px;
+  margin: 0 0 4px;
   font-family: var(--ff-sans);
-  font-size: var(--fs-body-sm);
+  font-size: var(--nb-kicker);
   line-height: 1.4;
   letter-spacing: 0.14em;
   color: rgba(58, 47, 38, 0.78);
@@ -244,25 +254,35 @@
 
 .book-page__title {
   margin: 0;
-  font-size: var(--fs-body);
+  font-size: var(--nb-title);
   font-weight: 600;
   line-height: 1.5;
   letter-spacing: 0.05em;
 }
 
 .book-page__sub {
-  margin: 4px 0 0;
-  font-size: var(--fs-body-sm);
+  margin: 2px 0 0;
+  font-size: var(--nb-sub);
   line-height: 1.5;
   letter-spacing: 0.07em;
   color: rgba(58, 47, 38, 0.76);
 }
 
+/* 来源标签整页一处（.book-page__src），不再每条留言各占一行 */
+.book-page__src {
+  margin: 4px 0 0;
+  font-family: var(--ff-sans);
+  font-size: var(--nb-note);
+  line-height: 1.4;
+  letter-spacing: 0.06em;
+  color: rgba(58, 47, 38, 0.74);
+}
+
 .book-page__list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  margin: 18px 0 0;
+  gap: 6px;
+  margin: 6px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -271,14 +291,13 @@
 .book-page__msg {
   display: flex;
   flex-direction: column;
-  gap: 2px;
   transform: rotate(-1.2deg);
 }
 .book-page__msg:nth-child(2) { transform: rotate(0.9deg); }
 .book-page__msg:nth-child(3) { transform: rotate(-0.5deg); }
 
 .book-page__name {
-  font-size: var(--fs-body-sm);
+  font-size: var(--nb-src);
   line-height: 1.5;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -288,24 +307,27 @@
 .book-page__tag {
   margin-left: 7px;
   font-family: var(--ff-sans);
-  font-size: var(--fs-body-sm);
+  font-size: var(--nb-src);
   font-weight: 400;
   letter-spacing: 0.02em;
   color: rgba(58, 47, 38, 0.74);
 }
 
 .book-page__text {
-  font-size: var(--fs-body-sm);
-  line-height: 1.95;
+  font-size: var(--nb-msg);
+  line-height: 1.6;
   letter-spacing: 0.02em;
   text-indent: 1em;
 }
+
+/* note 为空（本批六页都为空）时不占任何高度，也不留 padding-top */
+.book-page__note:empty { display: none; }
 
 .book-page__note {
   margin: auto 0 0;
   padding-top: 12px;
   font-family: var(--ff-sans);
-  font-size: var(--fs-body-sm);
+  font-size: var(--nb-note);
   line-height: 1.7;
   letter-spacing: 0.02em;
   color: rgba(58, 47, 38, 0.72);
@@ -317,8 +339,8 @@
    第七阶段：最终反思页（md 十一 / 第七阶段）
    · 令牌写在这里而不是 tokens.css —— 本阶段的可改文件不含 tokens.css，
      读写方式与其它令牌完全一致（js 用 msTok/cssVar 读）；
-   · 问题 21 world px、结束文字 18 world px、行高 1.7：反思页要"读得清"，
-     不是留言页那档 15px；
+   · 问题 26 world px、结束文字 20 world px、正文 19 world px：反思页要"读得清"，
+     不是留言页那档 18px；
    · 「继续」是文字按钮：无底色块、无图标，点击区高 44 world px，
      焦点环用 currentColor，键盘 Enter/Space 由原生 button 提供。
    ============================================================ */
@@ -347,7 +369,7 @@
 
 .book-reflect__q {
   margin: 0 0 34px;
-  font-size: 21px;
+  font-size: 26px;
   line-height: 1.72;
   letter-spacing: 0.02em;
   font-weight: 600;
@@ -358,7 +380,7 @@
   min-height: 44px;
   padding: 0 2px;
   font-family: var(--ff-hand);
-  font-size: 17px;
+  font-size: 20px;
   line-height: 1;
   letter-spacing: 0.08em;
   color: var(--ink-hand);
@@ -373,49 +395,43 @@
   outline-offset: 4px;
 }
 
+/* 第七阶段结尾的人工触发（用户决策 m01847：结束由人工控制）。
+   视觉语言与 __go 完全一致（手写体 + 一条下划线），只是位置落在三句之下。 */
+.book-reflect__end {
+  align-self: flex-start;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0 2px;
+  font-family: var(--ff-hand);
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  color: var(--ink-hand);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  border-radius: 0;
+  cursor: pointer;
+}
+.book-reflect__end:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
+
 .book-reflect__line {
   margin: 0 0 22px;
-  /* P3：版心满宽 238px 时每行装 13 字，第三句正好断在"值|得"，把"值得"劈成两半。
-     收窄到 218px（12 字 = 208.09px 装得下，13 字 = 225.42px 装不下）后，
-     长句固定 12+6，断点落回"依然|值得被记录。"，字号行高都不动。 */
-  max-width: 218px;
-  font-size: 17px;         /* 返工 R2：18px 会把"普通的"切开且第二行只剩 6 字 */
-  line-height: 1.7;        /* 17 × 1.7 = 28.9px */
+  /* P3：版心满宽时装 13 字，第三句会断在"值|得"，把"值得"劈成两半。
+     19px 字号下 12 字 = 228px 装得下、13 字 = 247px 装不下，
+     所以收窄到 236px：长句固定 12+6，断点落回"依然|值得被记录。"。 */
+  max-width: 236px;
+  font-size: 19px;         /* 19px：12 字 = 228px ≤ 236，13 字 = 247px > 236 */
+  line-height: 1.7;        /* 19 × 1.7 = 32.3px */
   letter-spacing: 0.02em;
 }
 .book-reflect__line:last-child { margin-bottom: 0; }
 
-/* 反思位的"光衰减"（屏幕空间一层暗角）。
-   1.5× 把世界右缘（world 1920）推进画面：屏幕 x≈1417.5 之外是 #world-fit 之下的
-   暗底 rgb(29,22,17)，实测那 502px（宽 26%）恒为 luma 22–23，与桌面（luma 90–150）
-   之间是一条硬竖边。
-   机位被 B2 钉死（书写页要落在画面中心 ≤120px、scale ≤1.5）；世界宽度 1920 与
-   桌面样式（css/desk.css）都不属于本阶段可改范围，取景无法消掉这块空区，
-   所以用一层暗角把桌面接进暗底——只在反思/结束态由 js 淡入，最终动画一开始淡出。
-   z-index 55：高于最近可读纸（46）、低于 #reader-nav（70）。 */
-.reflect-veil {
-  position: absolute;
-  inset: 0;
-  z-index: 55;
-  pointer-events: none;
-  opacity: 0;
-  background: linear-gradient(
-    90deg,
-    rgba(29, 22, 17, 0) 0%,
-    rgba(29, 22, 17, 0) 63%,
-    rgba(29, 22, 17, 0.35) 68%,
-    rgba(29, 22, 17, 0.75) 71%,
-    rgb(29, 22, 17) 72.5%,
-    rgb(29, 22, 17) 100%
-  );
-}
-
-/* 离开阅读态（reflection / ended）时控件淡出用 240ms、比进场更短。
-   进场规则在 css/archive.css:693（is-live，320ms），本文件后加载，
-   只用 :not(.is-live) 覆盖退场，进场行为不变。 */
-#reader-nav:not(.is-live) {
-  transition: opacity 240ms ease, visibility 0s linear 240ms;
-}
+/* 离开阅读态时，页脚导航立即退出交互，不遮挡反思与结束页。 */
+.reader-nav:not(.is-live) { pointer-events: none; }
 
 /* 翻页叶片：绕书脊（左缘）转 104°，正面贴旧页副本、背面是纸背。
    过 90° 正面退场、背面接手；超过书脊的部分被 .page 的 overflow 裁掉，
@@ -454,7 +470,7 @@
 .page-leaf__copy {
   position: absolute;
   inset: 0;
-  padding: 26px 28px 24px 46px;   /* 与 .page-inner 完全一致，副本才与旧页逐像素重合 */
+  padding: 26px 28px 20px 46px;   /* 与 .page-inner 完全一致，副本才与旧页逐像素重合 */
 }
 
 .page-leaf__back {

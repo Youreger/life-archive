@@ -5,7 +5,7 @@
    · 第四阶段用到三处过渡：
      1) 换纸时新纸"被抓起"的倾斜与落定前摆正：JS 改 .pose-layer 的内联
         transform（rotate 0 → 3.2deg → 0），由这里的 transition 补间；
-     2) 内容显隐：摘掉 .is-page-hidden 后 120ms 淡入；
+     2) 换纸内容不做 opacity 过渡，新旧纸从首帧起完整可见；
      3) 切换控件的 hover / 显影。
    · 时长与缓动一律取 CSS 令牌（没有令牌时才用括号内的兜底值）。
    ============================================================ */
@@ -18,7 +18,4 @@
   transition: box-shadow 240ms cubic-bezier(0.20, 0.70, 0.22, 1);
 }
 
-/* 内容显隐落在 .sheet 上（纸张本体常驻，见 css/archive.css 的 is-page-hidden） */
-.archive-item .paper-content > .sheet {
-  transition: opacity var(--dur-page-fade, 120ms) linear;
-}
+/* 换纸内容不做 opacity 过渡：新旧纸从第一帧起都保持完整可见。 */

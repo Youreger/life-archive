@@ -95,7 +95,7 @@
       + '<div class="viewer" role="group" aria-label="素材预览">'
       + '<span class="viewer__ph">'
       + '<span class="viewer__name"></span>'
-      + '<span class="viewer__tag">示例占位</span>'
+      + '<span class="viewer__tag"></span>'
       + '</span>'
       + '<img class="viewer__img" alt="">'
       + '</div>'
@@ -114,6 +114,12 @@
   }
 
   function unmount() {
+    /* crop 变量随放大块一起撤掉：关掉以后再打开别的素材，不会带上上一块的裁剪框 */
+    if (els.frame) {
+      ['x', 'y', 'w', 'h'].forEach(function (k) {
+        els.frame.style.removeProperty('--crop-' + k);
+      });
+    }
     if (els.img) {
       els.img.removeAttribute('src');           /* A11：img src 已清 */
       els.img.classList.add('is-missing');
@@ -138,8 +144,22 @@
     if (!els.close) { return; }
     els.close.style.width = size + 'px';
     els.close.style.height = size + 'px';
-    els.close.style.left = Math.round(t.left + t.width - size - pad) + 'px';
-    els.close.style.top = Math.round(t.top + pad) + 'px';
+    /* 按钮站在取样框之外：图片可见区就是框内矩形，按钮若落在框内就压在图上
+       （44×44 = 1936 px²，验收要求相交 0）。优先贴框右外侧，其次框上外侧，
+       两者都没有余量时才退回框内右上角（--viewer-max-w/h ≤ 84% 时不会发生）。 */
+    var vw = window.innerWidth;
+    var x = Math.round(t.left + t.width + pad);
+    var y = Math.round(t.top);
+    if (x + size > vw - pad) {
+      x = Math.round(t.left + t.width - size);
+      y = Math.round(t.top - pad - size);
+    }
+    if (y < pad) {
+      x = Math.round(t.left + t.width - size - pad);
+      y = Math.round(t.top + pad);
+    }
+    els.close.style.left = x + 'px';
+    els.close.style.top = y + 'px';
   }
 
   /* ---------- 视觉度量：占位文案与取样框随块缩放 ----------
@@ -278,8 +298,14 @@
     if (!els.frame) { return Promise.resolve(false); }
 
     els.name.textContent = (asset && asset.name) ? asset.name : (key || '素材');
+    /* 放大后必须看到纸面上同一块区域：把源素材位的 crop 参数原样搬到放大块上，
+       .viewer__img 用与 .asset-slot__img 完全相同的算式按它裁剪 */
+    ['x', 'y', 'w', 'h'].forEach(function (k) {
+      var v = slotEl.style.getPropertyValue('--crop-' + k);
+      if (v) { els.frame.style.setProperty('--crop-' + k, v); }
+    });
     /* 真图只在源素材位确实载入成功时才挂 src：png 到位后这里自然显示真图，
-       缺图时不产生第 13 条 404（控制台保持 12 条基线）。 */
+       缺图时不额外产生一条 404（本批素材齐备，控制台基线为 0 条）。 */
     var slotImg = slotEl.querySelector('.asset-slot__img');
     if (slotImg && slotImg.naturalWidth > 0 && slotImg.currentSrc) {
       els.img.classList.remove('is-missing');

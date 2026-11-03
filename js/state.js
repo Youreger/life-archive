@@ -24,6 +24,7 @@
        不重建 DOM、不改 data-id；六张纸始终是同一批 article。 */
     order: [1, 2, 3, 4, 5, 6],
     switching: false,
+    notebookTurning: false,
     /* 第七阶段：最终反思的进度。与 phase 分开，是为了让"继续"这种
        "同一阶段内的下一步"也能被 can() 判定，而不是只靠锁。 */
     reflection: 'none'
@@ -68,17 +69,22 @@
     /* 第四阶段：换纸。动画面板打开、换纸进行中、非阅读态一律不许进 */
     'switch-paper': function (s) {
       return s.phase === 'reading' && s.archive === 'extracted'
-        && s.viewer === 'closed' && s.switching !== true;
+        && s.viewer === 'closed' && s.switching !== true && s.notebookTurning !== true;
     },
     /* 第六份点 › 的入口（md:1062）：只在 06 上、阅读态、无查看器、无换纸时进 */
     'request-reflection': function (s) {
       return s.phase === 'reading' && s.currentId === 6 && s.reflection === 'none'
         && s.archive === 'extracted'
-        && s.viewer === 'closed' && s.switching !== true;
+        && s.viewer === 'closed' && s.switching !== true && s.notebookTurning !== true;
     },
     /* 第七阶段：点「继续」。只在问题已展示、尚未淡出时可进；ended 后无效 */
     'continue-reflection': function (s) {
       return s.phase === 'reflection' && s.reflection === 'question';
+    },
+    /* 第七阶段结尾（人工「结束」）：结束文字已全部淡入、且尚未开始收纳时可进。
+       收纳一开始 phase 变 closing，本 gate 立即为 false —— 重复点击在 gate 层返回 false。 */
+    'finish-archive': function (s) {
+      return s.phase === 'reflection' && s.reflection === 'text';
     },
     /* 第八阶段：收纳（md:1131）。只在阅读态、信封已开、纸已抽出、笔记本已开、
        无查看器、无换纸、不在反思时进；reflection 与 ended 一律不响应
@@ -86,7 +92,7 @@
     'close-envelope': function (s) {
       return s.phase === 'reading' && s.envelope === 'open' && s.archive === 'extracted'
         && s.notebook === 'open' && s.viewer === 'closed' && s.switching !== true
-        && s.reflection === 'none';
+        && s.notebookTurning !== true && s.reflection === 'none';
     },
     /* 第六阶段：统一图片查看器（md:1170-1211）。只在阅读态可开；
        打开瞬间 state.viewer='open'，于是 switch-paper 立刻为 false
@@ -98,7 +104,11 @@
     'close-viewer': function (s) {
       return s.viewer === 'open';
     },
-    'turn-page': function () { return false; }          /* P5 */
+    'turn-page': function (s) {
+      return s.phase === 'reading' && s.archive === 'extracted'
+        && s.notebook === 'open' && s.viewer === 'closed'
+        && s.switching !== true && s.notebookTurning !== true && s.reflection === 'none';
+    }
   };
 
   /* 第七阶段：入口转交 js/archive.js 的真实实现（延迟取，避免脚本顺序耦合）。
@@ -115,6 +125,15 @@
   state.requestClose = function () {
     if (Archive.can('close-envelope') !== true) { return false; }
     var impl = Archive.archive && Archive.archive.requestClose;
+    if (typeof impl !== 'function') { return false; }
+    return impl();
+  };
+
+  /* 第七阶段结尾：人工「结束」入口。结束文字淡入后由 .book-reflect__end 触发，
+     经 can('finish-archive') 转交给 js/archive.js 的完整收纳实现。 */
+  state.requestFinish = function () {
+    if (Archive.can('finish-archive') !== true) { return false; }
+    var impl = Archive.archive && Archive.archive.requestFinish;
     if (typeof impl !== 'function') { return false; }
     return impl();
   };

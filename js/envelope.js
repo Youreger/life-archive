@@ -35,6 +35,10 @@
 
   function onClick() {
     var A = Archive.animation;
+    /* 完整结束后，信封成为重播入口：先恢复初始场景，再沿用同一条开场链。 */
+    if (Archive.state && Archive.state.phase === 'ended' && Archive.state.reflection === 'done') {
+      if (Archive.archive && Archive.archive.resetScene) { Archive.archive.resetScene(); }
+    }
     /* 第八阶段：阅读态点信封 = 收纳（md:1131）。同一个点击处理器不新增按钮；
        两个 gate 互斥（open-envelope 要 phase=idle，close-envelope 要 phase=reading），
        其余相位（opening/landing/reflection/ended/closing）落进 click:ignored。 */

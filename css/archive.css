@@ -121,16 +121,16 @@
 }
 
 /* ============================================================
-   素材位占位系统（映射 md 十六章）
-   结构（第三阶段由 data.js 的 assets 配置渲染）：
-   <div class="asset-slot" style="--asset-ratio: 159 / 90">
-     <div class="asset-slot__ph">
+   素材位系统（映射 md 十六章）
+   结构（由 js/archive.js 的 slot() 按 data.js 的素材配置渲染）：
+   <div class="asset-slot" style="--asset-ratio: 2.04 / 1;
+        --crop-x: 0.02287; --crop-y: 0.22936; --crop-w: 0.96582; --crop-h: 0.51793">
+     <span class="asset-slot__ph">
        <span class="asset-slot__name">电影票</span>
-       <span class="asset-slot__tag">示例占位</span>
-     </div>
+     </span>
      <img class="asset-slot__img" src="…" alt="…">
    </div>
-   固定宽高比容器 + 底层占位 + 上层绝对定位 img；
+   crop 后的固定宽高比容器 + 底层纸色占位（只留物件名暗纹）+ 上层绝对定位 img；
    img 缺失或加载失败时容器尺寸完全不变（布局零跳动）。
    ============================================================ */
 
@@ -164,20 +164,17 @@
   color: var(--ink-body);
 }
 
-.asset-slot__tag {
-  font-family: var(--ff-sans);
-  font-size: var(--fs-paper-note);
-  line-height: 1;
-  letter-spacing: var(--ls-wide);
-  color: var(--ink-muted);
-}
-
+/* crop：容器宽高比 = crop 之后的宽高比（--asset-ratio 由 js/data.js 现场算出），
+   img 先按 1/--crop-w、1/--crop-h 放大，再按 --crop-x/-y 反向偏移，
+   于是只显示原图 crop 框内的那一块 —— 数值与 js/data.js 完全一致，不拉伸。
+   查看器（css/viewer.css）用同一套算式显示同一块区域。 */
 .asset-slot__img {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  left: calc(-1 * var(--crop-x, 0) * 100% / var(--crop-w, 1));
+  top: calc(-1 * var(--crop-y, 0) * 100% / var(--crop-h, 1));
+  width: calc(100% / var(--crop-w, 1));
+  height: calc(100% / var(--crop-h, 1));
+  object-fit: contain;
   display: block;
 }
 
@@ -186,12 +183,26 @@
   visibility: hidden;
 }
 
+/* 03 聊天截图：灰底截图当成贴进本子的一张小卡 —— 纸色底卡 + 1px 内描边 + 柔影 */
+.asset-slot--screen {
+  background-color: #F3F0EA;
+  box-shadow: inset 0 0 0 1px var(--pf-rule-soft), var(--pf-relief);
+}
+
+/* 04 生活票据与合影：纸色相框（四周黑羽化已由 crop 去掉，不做像素级羽化） */
+.asset-slot--photo {
+  padding: 6px;
+  background-color: #F3F0EA;
+  box-shadow: inset 0 0 0 1px var(--pf-rule-soft), var(--pf-relief);
+}
+
 /* ============================================================
    第三阶段：六份档案的纸面版式
    .sheet 用 636×900 的纸面坐标空间排版（见 tokens.css §18），
    六份共用页头/页脚/注记骨架，正文骨架各成一套：
-   01 票根+短评 / 02 表格课程表 / 03 聊天面板 / 04 左票据右对话 /
-   05 摄影计划+照片三联 / 06 大图+留言条
+   01 票根+短评 / 02 课表原图+引文 / 03 整幅聊天截图 /
+   04 整幅票据与家话 / 05 整幅校园照片 / 06 整幅合照与留言
+   03/04/05/06 的原图就是档案本身，HTML 不再复述图里的内容。
    ============================================================ */
 
 .paper-content > .sheet {
@@ -263,13 +274,14 @@
 
 .pf-note {
   flex: 0 0 auto;
-  margin: 14px 0 0;
+  margin: 14px 0 12px;
   font-family: var(--ff-sans);
   font-size: var(--fs-paper-note);
   line-height: 1.58;
   color: var(--ink-muted);
 }
 
+/* 页码与 ‹ › 落右下角：整条页脚靠右收（nav 右缘与页脚右缘对齐，第四阶段测试断言） */
 .pf-page {
   position: absolute;
   left: var(--sheet-pad-x);
@@ -277,7 +289,8 @@
   bottom: var(--sheet-foot-bottom);
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
+  justify-content: flex-end;
+  gap: 16px;
   font-family: var(--ff-sans);
   font-size: var(--fs-paper-note);
   color: var(--ink-muted);
@@ -287,8 +300,6 @@
   letter-spacing: var(--ls-wide);
   font-variant-numeric: tabular-nums;
 }
-
-.pf-page__mark { letter-spacing: 0.05em; opacity: 0.82; }
 
 .pf-p { margin: 0; }
 .pf-p + .pf-p { margin-top: 8px; }
@@ -312,29 +323,32 @@
   color: var(--ink-body);
 }
 
-.pf-col__tag {
-  margin: 0 0 10px;
-  font-family: var(--ff-sans);
-  font-size: var(--fs-paper-note);
-  letter-spacing: var(--ls-wide);
-  color: var(--ink-muted);
-}
+/* 图片槽位：基类只管居中和不被压缩，宽度一律由修饰类给。
+   高度不写死 —— 由 .asset-slot 的 aspect-ratio（= crop 之后的真实比例）决定，
+   所以任何宽度下图片都不会变形。 */
+.pf-slip { flex: 0 0 auto; margin: 0 auto; }
 
-.pf-slip { margin: 0 0 0 auto; width: 80px; }
+/* 03 竖幅聊天截图：377 宽 ÷ 0.66667 = 565.5 高（可用 569） */
+.pf-slip--chat { width: 377px; }
 
-/* 03 的聊天面板与彩印件并排：面板撑满左侧，彩印件贴右上，不与页脚抢空间 */
+/* 06 竖幅合照与留言：489 宽 ÷ 0.86140 = 567.6 高（可用 569） */
+.pf-slip--fare { width: 489px; }
+
+/* 04 / 05 横幅整幅图：占满内容盒宽度 */
+.pf-slip--wide { width: 100%; }
+
+/* 03 只放一张竖幅截图：纵向排列并整体居中，不再与任何面板并排 */
 .archive-sheet--03 .pf-flow {
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 16px;
+  align-items: center;
+  justify-content: center;
 }
 
-.archive-sheet--03 .im-panel { flex: 1 1 auto; min-width: 0; }
-
-.archive-sheet--03 .pf-slip {
-  flex: 0 0 auto;
-  width: 84px;
-  margin: 0;
+/* 04 / 05 / 06 同样只有一张图：垂直居中吸收余量，不加任何填充装饰 */
+.archive-sheet--04 .pf-flow,
+.archive-sheet--05 .pf-flow,
+.archive-sheet--06 .pf-flow {
+  align-items: center;
+  justify-content: center;
 }
 
 /* ---------- 01 一场普通的电影：票根 + 短评 ---------- */
@@ -363,286 +377,18 @@
   box-shadow: 0 1px 2px rgba(48, 33, 22, 0.10);
 }
 
-/* ---------- 02 课程表：打印表格 ---------- */
-.pf-block--print {
-  padding: 20px 18px 16px;
-  background: var(--paper-cool);
-  box-shadow: inset 0 0 0 1px var(--pf-rule-soft), 0 1px 2px rgba(48, 33, 22, 0.06);
-}
-
-.pf-tt {
+/* ---------- 02 课程表：原图即主视觉 ---------- */
+.pf-plate {
+  margin: 0;
   width: 100%;
-  border-collapse: collapse;
-  font-family: var(--ff-sans);
-  font-size: var(--fs-paper-sub);
-  line-height: 1.4;
-  color: var(--ink-body);
 }
 
-.pf-tt th,
-.pf-tt td {
-  border: 1px solid var(--pf-rule-soft);
-  padding: 9px 6px;
-  text-align: center;
-  font-weight: 400;
-}
-
-.pf-tt thead th {
-  background: var(--pf-wash);
-  color: var(--ink-muted);
-  letter-spacing: 0.06em;
-}
-
-.pf-tt__corner { width: 76px; }
-
-.pf-tt__row {
-  width: 76px;
-  text-align: left;
-  padding-left: 10px;
-  color: var(--ink-muted);
-}
-
-.pf-tt__cell { height: 40px; }
-.pf-tt__cell.is-marked { background: rgba(198, 171, 134, 0.28); }
-
-.pf-tt__chip {
-  font-size: var(--fs-paper-note);
-  letter-spacing: 0.08em;
-  /* 标记需 ≥4.5:1：ink-muted 在 tinted 格底上只有 4.45，改 ink-body */
-  color: var(--ink-body);
-}
-
-.pf-cap {
-  margin: 13px 0 0;
-  font-family: var(--ff-hand);
-  font-size: var(--fs-paper-sub);
-  color: var(--ink-muted);
+.pf-plate .asset-slot {
+  box-shadow: inset 0 0 0 1px var(--pf-rule-soft), var(--pf-relief);
 }
 
 .pf-quotes { display: flex; flex-direction: column; gap: 9px; }
-
-.pf-orig { margin: 0 0 0 auto; width: 132px; }
-
-/* ---------- 03 / 04 聊天面板 ---------- */
-.im-panel {
-  padding: 16px 16px 0;
-  background: var(--im-bg);
-  box-shadow: inset 0 0 0 1px var(--pf-rule-soft);
-}
-
-.im-stamp {
-  padding-bottom: 12px;
-  text-align: center;
-  font-family: var(--ff-sans);
-  font-size: var(--fs-paper-note);
-  letter-spacing: 0.04em;
-  color: var(--ink-muted);
-}
-
-.im-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 9px;
-}
-
-.im-row--r { flex-direction: row-reverse; }
-
-.im-face {
-  flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
-  display: grid;
-  place-items: center;
-  border-radius: 3px;
-  background: var(--kraft-300);
-  box-shadow: inset 0 0 0 1px var(--pf-rule-soft);
-  font-family: var(--ff-sans);
-  font-size: var(--fs-paper-note);
-  line-height: 1;
-  color: var(--ink-on-kraft);
-}
-
-.im-bubble {
-  max-width: 336px;
-  padding: 9px 12px;
-  background: var(--im-bubble);
-  box-shadow: inset 0 0 0 1px var(--pf-rule-soft);
-  font-size: var(--fs-paper-body);
-  line-height: var(--lh-bubble);
-  color: var(--ink-body);
-}
-
-.im-row--r .im-bubble { background: var(--im-bubble-tint); }
-
-.im-bubble--file {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  width: 222px;
-}
-
-.im-file__name {
-  font-family: var(--ff-sans);
-  font-size: var(--fs-paper-sub);
-  color: var(--ink-title);
-}
-
-.im-file__meta {
-  font-family: var(--ff-sans);
-  font-size: var(--fs-paper-note);
-  color: var(--ink-muted);
-}
-
-.im-input {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 12px -16px 0;
-  padding: 11px 16px;
-  background: var(--paper-cool);
-  box-shadow: inset 0 1px 0 var(--pf-rule-soft);
-  font-family: var(--ff-sans);
-  font-size: var(--fs-paper-sub);
-  color: var(--ink-muted);
-}
-
-.im-input__send {
-  font-size: var(--fs-paper-note);
-  letter-spacing: 0.06em;
-}
-
-/* ---------- 04 家里的日常：左票据叠放 / 右母亲对话 ---------- */
-.pf-cols {
-  display: grid;
-  grid-template-columns: 196px 1fr;
-  gap: 18px;
-  align-items: start;
-}
-
-.pf-col { display: flex; flex-direction: column; min-width: 0; }
-
-.pf-stack { position: relative; height: 496px; }
-
-.pf-receipt {
-  position: absolute;
-  width: 150px;
-  margin: 0;
-  transform-origin: 50% 8%;
-}
-
-.pf-receipt .asset-slot {
-  box-shadow: inset 0 0 0 1px var(--pf-rule-soft), var(--pf-relief);
-}
-
-.pf-receipt--1 { top: 0; left: 0; transform: rotate(-2.2deg); }
-.pf-receipt--2 { top: 132px; left: 16px; transform: rotate(1.5deg); }
-.pf-receipt--3 { top: 262px; left: 4px; transform: rotate(-1.1deg); }
-
-.archive-sheet--04 .im-panel { padding: 14px 14px 0; }
-.archive-sheet--04 .im-bubble { max-width: 212px; }
-.archive-sheet--04 .im-input { margin: 12px -14px 0; padding: 10px 14px; }
-.pf-slip--talk { margin: 12px 0 0 auto; }
-
-/* ---------- 05 还没拍完的照片：计划 + 三联 ---------- */
-.pf-plan {
-  display: grid;
-  grid-template-columns: 246px 1fr;
-  gap: 20px;
-  align-items: start;
-}
-
-.pf-plan__paper { margin: 0; }
-
-.pf-plan__paper .asset-slot {
-  box-shadow: inset 0 0 0 1px var(--pf-rule-soft), var(--pf-relief);
-}
-
-.pf-plan__side { display: flex; flex-direction: column; gap: 8px; }
-
-.pf-plan__tag { margin: 0; }
-
-.pf-plan__list {
-  margin: 0;
-  padding-left: 20px;
-  font-family: var(--ff-hand);
-  font-size: var(--fs-paper-lead);
-  line-height: 1.62;
-  letter-spacing: 0.01em;
-  color: var(--ink-body);
-}
-
-.pf-plan__item { padding-left: 2px; }
-
-.pf-trio {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.pf-trio__item { margin: 0; }
-.pf-trio__item .asset-slot { box-shadow: inset 0 0 0 1px var(--pf-rule-soft), var(--pf-relief); }
-
-.pf-trio__item--2 { transform: rotate(1.1deg); }
-.pf-trio__item--3 { transform: rotate(-1.3deg); }
-
-.pf-paras { display: flex; flex-direction: column; gap: 9px; }
-
-/* ---------- 06 那些一起走过的人：大图 + 留言条 ---------- */
-.pf-hero {
-  align-self: center;
-  width: 392px;
-  margin: 0;
-  transform: rotate(-0.8deg);
-}
-
-.pf-hero .asset-slot { box-shadow: inset 0 0 0 1px var(--pf-rule-soft), var(--pf-relief); }
-
-.pf-col__tag--left { margin: 0; }
-
-.pf-msgs {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.pf-msg {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 3px 10px;
-  padding: 10px 14px;
-  background: var(--im-bubble);
-  box-shadow: inset 0 0 0 1px var(--pf-rule-soft);
-}
-
-.pf-msg__name {
-  font-family: var(--ff-sans);
-  font-size: var(--fs-paper-note);
-  letter-spacing: 0.06em;
-  color: var(--ink-muted);
-}
-
-.pf-msg__tag {
-  font-family: var(--ff-sans);
-  font-size: var(--fs-paper-note);
-  /* 去掉 opacity 0.86：它把 ink-muted 稀释到 4.17:1 */
-  color: var(--ink-muted);
-  text-align: right;
-}
-
-.pf-msg__text {
-  grid-column: 1 / -1;
-  font-size: var(--fs-paper-body);
-  line-height: var(--lh-reading);
-  color: var(--ink-body);
-}
-
-.pf-msg--2 { transform: rotate(0.7deg); }
-.pf-msg--3 { transform: rotate(-0.6deg); }
-
+.pf-fare__talk { min-width: 0; }
 
 /* ============================================================
    第四阶段：档案切换 —— 控件与换纸过渡（md:847-944）
@@ -678,26 +424,21 @@
   --nav-ink-strong: rgba(38, 29, 20, 0.88);
 }
 
-#reader-nav {
-  position: absolute;
-  left: var(--nav-paper-cx);
-  top: var(--nav-paper-cy);
-  width: 0;
-  height: 0;
-  z-index: var(--z-nav);
-  opacity: 0;
+.pf-page { align-items: center; }
+
+/* 每张纸各自携带页脚导航；非当前纸随 .sheet 一起隐藏。 */
+.reader-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 16px;
   visibility: hidden;
-  transition: opacity 320ms ease, visibility 0s linear 320ms;
+  pointer-events: none;
 }
 
-#reader-nav.is-live {
-  opacity: 1;
-  visibility: visible;
-  transition: opacity 320ms ease;
-}
+.reader-nav.is-live { visibility: visible; pointer-events: auto; }
 
 .reader-nav__btn {
-  position: absolute;
   width: var(--nav-size);
   height: var(--nav-size);
   margin: 0;
@@ -708,47 +449,13 @@
   font-size: 26px;
   line-height: 1;
   color: var(--nav-ink-strong);
-  /* 控件落在纸与笔记本的投影带上（实测桌面从 231 掉到 80 灰阶），单一墨色在
-     两处不可能同时够 3:1；给符号一层纸色柔光描边，暗处由描边托住、亮处隐没。 */
-  text-shadow: 0 0 9px rgba(247, 241, 229, 0.92),
-               0 0 2px rgba(247, 241, 229, 0.85);
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
 }
 
-.reader-nav__btn--prev {
-  left: calc(-1 * (var(--nav-half-w) + var(--nav-gap-x)) - var(--nav-size) / 2);
-  top: calc(-1 * var(--nav-size) / 2);
-}
-
-.reader-nav__btn--next {
-  left: calc(var(--nav-half-w) + var(--nav-gap-x) - var(--nav-size) / 2);
-  top: calc(-1 * var(--nav-size) / 2);
-}
-
-.reader-nav__btn:disabled {
-  /* 禁用态必须"看得见但不主动"：26% 太虚（实测与桌面亮度之比不到 3:1），
-     这里用 55% —— 与可用态（100%）一眼可分，同时仍读得出是同一个符号。 */
-  opacity: 0.55;
-  cursor: default;
-}
-
-.reader-nav__page {
-  position: absolute;
-  left: -60px;
-  top: calc(var(--nav-half-h) + var(--nav-gap-y));
-  width: 120px;
-  text-align: center;
-  font-family: var(--ff-sans);
-  font-size: 15px;
-  letter-spacing: 0.12em;
-  font-variant-numeric: tabular-nums;
-  color: var(--nav-ink-strong);
-  text-shadow: 0 0 9px rgba(247, 241, 229, 0.92),
-               0 0 2px rgba(247, 241, 229, 0.85);
-  pointer-events: none;
-}
+.reader-nav__btn:disabled { opacity: 0.55; cursor: default; }
+.reader-nav__btn:focus-visible { outline: 1px dashed var(--nav-ink-strong); outline-offset: 2px; }
 
 /* 非当前档案：只隐藏"内容"，纸张本体（.paper-content 的纸色/纤维/边线/投影）
    照旧可见 —— 否则退回去的纸会整张凭空消失，纸叠在切换的一瞬间变成空的。
@@ -770,5 +477,4 @@
 #paper-bundle.is-switching .archive-item {
   pointer-events: none;
 }
-
 

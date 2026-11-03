@@ -4,7 +4,7 @@
      不是同一套模板换文字；
    · 内容全部来自 js/data.js（唯一数据源），本文件不写任何文案；
    · 只在 .paper-content 内注入 .sheet，不改 index.html 的 DOM 层级；
-   · 素材位缺失时布局零变化：占位容器有固定 aspect-ratio，img 绝对定位铺满；
+   · 素材位缺失时布局零变化：容器用 crop 后的 aspect-ratio 撑住，img 绝对定位裁剪显示；
    · .is-zoomable + data-asset-key 为第六阶段图片查看器预留，本阶段点击不响应且不报错。
    ============================================================ */
 (function (window, document) {
@@ -22,15 +22,21 @@
       .replace(/"/g, '&quot;');
   }
 
-  /* ---------- 素材位（md 十六.1 占位规则） ---------------------------- */
+  /* ---------- 素材位（md 十六.1 占位规则） ----------------------------
+     crop 由 js/data.js 给出（归一化安全框 0–1），四个 --crop-* 交给 CSS 裁剪：
+     .asset-slot 的 aspect-ratio = crop 之后的宽高比，img 按 1/--crop-* 放大再
+     偏移，纸面与查看器共用同一套算法，数值与 data.js 完全一致。
+     ------------------------------------------------------------------ */
   function slot(a, extraClass) {
     if (!a) { return ''; }
+    var c = a.crop || [0, 0, 1, 1];
     return '<div class="asset-slot is-zoomable' + (extraClass ? ' ' + extraClass : '') + '"'
       + ' data-asset-key="' + esc(a.key) + '"'
-      + ' style="--asset-ratio: ' + esc(a.ratio) + '">'
+      + ' style="--asset-ratio: ' + esc(a.ratio) + ';'
+      + ' --crop-x: ' + esc(c[0]) + '; --crop-y: ' + esc(c[1]) + ';'
+      + ' --crop-w: ' + esc(c[2]) + '; --crop-h: ' + esc(c[3]) + '">'
       + '<span class="asset-slot__ph">'
       + '<span class="asset-slot__name">' + esc(a.name) + '</span>'
-      + '<span class="asset-slot__tag">示例占位</span>'
       + '</span>'
       + '<img class="asset-slot__img" src="' + esc(Archive.data.assetSrc(a)) + '"'
       + ' alt="' + esc(a.alt) + '">'
@@ -52,7 +58,10 @@
   function foot(d) {
     return '<footer class="pf-page">'
       + '<span class="pf-page__no">' + esc(d.no) + ' / 06</span>'
-      + '<span class="pf-page__mark">林予安 · 个人档案</span>'
+      + '<div class="reader-nav" aria-label="档案切换">'
+      + '<button class="reader-nav__btn reader-nav__btn--prev" type="button" aria-label="上一份档案">‹</button>'
+      + '<button class="reader-nav__btn reader-nav__btn--next" type="button" aria-label="下一份档案">›</button>'
+      + '</div>'
       + '</footer>';
   }
 
@@ -77,117 +86,51 @@
       + '</section>';
   }
 
-  /* ---------- 02 课程表（表格） -------------------------------------- */
+  /* ---------- 02 课程表（原图即主视觉） --------------------------------
+     表格 DOM 整套删除：空表格读起来像线框占位，真正被记住的是那张打印出来的
+     课表本身。图取满 .pf-flow 内容宽（544 设计 px），高度由 --asset-ratio 自然得出。
+     ------------------------------------------------------------------ */
   function buildTimetable(d) {
-    var t = d.table;
-    var headRow = '<tr><th class="pf-tt__corner" scope="col">' + esc(t.corner) + '</th>'
-      + t.cols.map(function (c) { return '<th scope="col">' + esc(c) + '</th>'; }).join('')
-      + '</tr>';
-    var body = t.rows.map(function (name, r) {
-      var cells = t.cols.map(function (c, ci) {
-        var marked = false;
-        for (var i = 0; i < t.marked.length; i += 1) {
-          if (t.marked[i].r === r && t.marked[i].c === ci) { marked = true; }
-        }
-        return '<td class="pf-tt__cell' + (marked ? ' is-marked' : '') + '">'
-          + (marked ? '<span class="pf-tt__chip">示例</span>' : '')
-          + '</td>';
-      }).join('');
-      return '<tr><th class="pf-tt__row" scope="row">' + esc(name) + '</th>' + cells + '</tr>';
-    }).join('');
-    return '<section class="pf-block pf-block--print">'
-        + '<table class="pf-tt" aria-label="打印课程表（示例占位）">'
-        + '<thead>' + headRow + '</thead><tbody>' + body + '</tbody></table>'
-        + '<p class="pf-cap">' + esc(d.cap) + '</p>'
-      + '</section>'
+    return '<figure class="pf-plate">' + slot(d.assets.main) + '</figure>'
       + '<section class="pf-quotes">'
         + d.quotes.map(function (q) { return '<p class="pf-p">' + esc(q) + '</p>'; }).join('')
-      + '</section>'
-      + '<figure class="pf-orig">' + slot(d.assets.main) + '</figure>';
-  }
-
-  /* ---------- 03 聊天气泡 -------------------------------------------- */
-  function bubbleRow(m) {
-    var inner = m.file
-      ? '<div class="im-bubble im-bubble--file">'
-          + '<span class="im-file__name">' + esc(m.file.name) + '</span>'
-          + '<span class="im-file__meta">' + esc(m.file.meta) + '</span>'
-        + '</div>'
-      : '<div class="im-bubble">' + esc(m.text) + '</div>';
-    return '<div class="im-row im-row--' + esc(m.side) + '">'
-      + '<span class="im-face" aria-label="' + esc(m.who) + '">' + esc(m.face) + '</span>'
-      + inner
-      + '</div>';
-  }
-
-  function panel(d) {
-    return '<section class="im-panel">'
-      + '<div class="im-stamp">' + esc(d.stamp) + '</div>'
-      + d.thread.map(bubbleRow).join('')
-      + '<div class="im-input">'
-        + '<span class="im-input__ph">' + esc(d.inputPlaceholder) + '</span>'
-        + '<span class="im-input__send">' + esc(d.sendLabel) + '</span>'
-      + '</div>'
       + '</section>';
   }
 
+  /* ---------- 03 聊天截图 ----------------------------------------------
+     原始聊天截图就是这份档案；不再用 HTML 把同一段对话重排成气泡。
+     ------------------------------------------------------------------ */
   function buildChat(d) {
-    return panel(d)
-      + '<figure class="pf-slip">' + slot(d.assets.main) + '</figure>';
+    return '<figure class="pf-slip pf-slip--chat">'
+      + slot(d.assets.main, 'asset-slot--screen')
+      + '</figure>';
   }
 
-  /* ---------- 04 票据叠放 + 母亲对话 --------------------------------- */
+  /* ---------- 04 生活票据与家里的对话 ----------------------------------
+     整幅原图（三张票据 + 一段家里的对话）直接呈现：金额与对话都在图里，
+     再用 HTML 复算一遍等于把同一份材料说两次。
+     ------------------------------------------------------------------ */
   function buildReceipt(d) {
-    var slips = d.assets.extras.map(function (a, i) {
-      return '<figure class="pf-receipt pf-receipt--' + (i + 1) + '">'
-        + slot(a) + '</figure>';
-    }).join('');
-    return '<div class="pf-cols">'
-        + '<div class="pf-col pf-col--slips">'
-          + '<p class="pf-col__tag">' + esc(d.receiptsHeading) + '</p>'
-          + '<div class="pf-stack">' + slips + '</div>'
-        + '</div>'
-        + '<div class="pf-col pf-col--talk">'
-          + panel({ stamp: d.stamp, thread: d.thread, inputPlaceholder: '发消息…', sendLabel: '发送' })
-          + '<figure class="pf-slip pf-slip--talk">' + slot(d.assets.main) + '</figure>'
-        + '</div>'
-      + '</div>';
+    return '<figure class="pf-slip pf-slip--wide">'
+      + slot(d.assets.main, 'asset-slot--photo')
+      + '</figure>';
   }
 
-  /* ---------- 05 摄影计划 + 照片三联 -------------------------------- */
+  /* ---------- 05 校园摄影计划 ------------------------------------------ */
   function buildPhoto(d) {
-    var plan = d.plan.map(function (p) {
-      return '<li class="pf-plan__item">' + esc(p) + '</li>';
-    }).join('');
-    var trio = d.assets.extras.map(function (a, i) {
-      return '<figure class="pf-trio__item pf-trio__item--' + (i + 1) + '">' + slot(a) + '</figure>';
-    }).join('');
-    return '<p class="pf-lead">' + esc(d.lead) + '</p>'
-      + '<div class="pf-plan">'
-        + '<figure class="pf-plan__paper">' + slot(d.assets.main) + '</figure>'
-        + '<div class="pf-plan__side">'
-          + '<p class="pf-plan__tag">' + esc(d.planHeading) + '</p>'
-          + '<ol class="pf-plan__list">' + plan + '</ol>'
-        + '</div>'
-      + '</div>'
-      + '<div class="pf-trio">' + trio + '</div>'
-      + '<div class="pf-paras">'
-        + d.paras.map(function (p) { return '<p class="pf-p">' + esc(p) + '</p>'; }).join('')
-      + '</div>';
+    return '<figure class="pf-slip pf-slip--wide">'
+      + slot(d.assets.main)
+      + '</figure>';
   }
 
-  /* ---------- 06 毕业合照 + 留言条 ---------------------------------- */
+  /* ---------- 06 毕业合照与留言 ----------------------------------------
+     合照里已经是一条条手写留言，纸面不再重排成留言卡；留言原文仍留在
+     js/data.js 的 archiveData[5].messages，供笔记本第 06 页使用。
+     ------------------------------------------------------------------ */
   function buildFarewell(d) {
-    var msgs = d.messages.map(function (m, i) {
-      return '<li class="pf-msg pf-msg--' + (i + 1) + '">'
-        + '<span class="pf-msg__name">' + esc(m.name) + '</span>'
-        + '<span class="pf-msg__tag">' + esc(m.tag) + '</span>'
-        + '<span class="pf-msg__text">' + esc(m.text) + '</span>'
-        + '</li>';
-    }).join('');
-    return '<figure class="pf-hero">' + slot(d.assets.main) + '</figure>'
-      + '<p class="pf-col__tag pf-col__tag--left">' + esc(d.messagesHeading) + '</p>'
-      + '<ul class="pf-msgs">' + msgs + '</ul>';
+    return '<figure class="pf-slip pf-slip--fare">'
+      + slot(d.assets.main)
+      + '</figure>';
   }
 
   var BUILDERS = {
@@ -274,7 +217,7 @@
      · 全程只有一张 .paper-content 可读（其余 visibility:hidden，几何不变）。
      ============================================================ */
 
-  var nav = { el: null, prev: null, next: null, page: null };
+  var nav = { els: [], buttons: [] };
   var home = {};                        /* 纸叠里的原始 world rect（回退目标位） */
   var switchLog = { switches: 0, last: null };
 
@@ -370,11 +313,17 @@
 
   function refreshNav() {
     var s = st();
-    if (!nav.el) { return; }
     var n = s.currentId || 1;
-    if (nav.page) { nav.page.textContent = (n < 10 ? '0' + n : String(n)); }
-    if (nav.prev) { nav.prev.disabled = (s.switching === true) || n <= 1; }
-    if (nav.next) { nav.next.disabled = (s.switching === true); }
+    /* visibility 可被子元素覆盖：只激活当前纸的页脚，避免六组按钮穿透纸叠。 */
+    nav.els.forEach(function (el) {
+      var owner = el.closest('.archive-item');
+      el.classList.toggle('is-live', s.phase === 'reading' && owner &&
+        Number(owner.getAttribute('data-id')) === n);
+    });
+    nav.buttons.forEach(function (btn) {
+      var prev = btn.classList.contains('reader-nav__btn--prev');
+      btn.disabled = s.switching === true || s.notebookTurning === true || (prev && n <= 1);
+    });
   }
 
   function setBusy(on) {
@@ -410,11 +359,17 @@
     if (!oldItem || !newItem || !homeNow(s.currentId)) { return Promise.resolve(false); }
     var t = switchTime();
     var total = Math.max(t.returnDur, t.pullDelay + t.pullDur);
-    /* 看门狗 = 预估时长 × 1.6（js/animation.js:115-122 内建） */
-    return anim.withLock('archive', function () { return runSwitch(oldItem, newItem, t, total); }, total);
+    /* 看门狗 = 预估时长 × 1.6（js/animation.js:262-279 内建）。
+       total 只是动画时长（880ms），而锁要等到两条 settle 都收尾才 finally 释放：
+       实测正常落在 900–950ms，主线程繁忙时 settle 的兜底期限会整体后移（实测到过 ~2000ms）。
+       按 js/envelope.js:58 的同一约定，给看门狗补一段 pad，避免把"慢"误判成"卡死"。
+       这个 estimate 同时被 runSwitch 的本地兜底复用（见 NET_LEAD_MS），两处只此一份。 */
+    var watchPad = t.pullDur;
+    var lockEstimate = total + watchPad;
+    return anim.withLock('archive', function () { return runSwitch(oldItem, newItem, t, lockEstimate); }, lockEstimate);
   }
 
-  function runSwitch(oldItem, newItem, t, total) {
+  function runSwitch(oldItem, newItem, t, lockEstimate) {
     var anim = Archive.animation;
     var s = st();
     var oldId = s.currentId;
@@ -422,6 +377,9 @@
     var readerTarget = anim.readerTargetWorld();
     var oldHome = homeNow(oldId);
     var startedAt = window.performance.now();
+    /* 本链起点的代数：复位（看门狗 recover → resetScene）会把它 +1，
+       此时本链的所有提交都已过期，必须原地作废（js/animation.js:209-213 的约定）。 */
+    var startGen = (typeof anim.generation === 'function') ? anim.generation() : 0;
 
     var oldMotion = oldItem.querySelector('.motion-layer');
     var oldPose = poseOf(oldItem);
@@ -429,8 +387,9 @@
     var newPose = poseOf(newItem);
 
     setBusy(true);
-    /* 旧纸的内容立刻不可读（之后是白纸背面退回，不让文字跟着缩小） */
-    oldItem.classList.add('is-page-hidden');
+    /* 两张参与切换的纸从第一帧起就保留完整内容：旧纸随运动退回，
+       新纸在堆叠中等待抽出；只在 commit / rollback 时才恢复单页可读态。 */
+    newItem.classList.remove('is-page-hidden');
     oldItem.classList.add('is-returning');
     /* 动画期间的临时 z：新纸在阅读层、旧纸在第二层，其余按 order */
     oldItem.style.zIndex = String(numTok('--z-paper-1', 46) - 1);
@@ -452,8 +411,20 @@
 
     /* ---- 失败路径的收尾保障（P4 返工第 2 轮）----
        animation.js 的看门狗只释放锁、不碰 UI；而 once switching 为 true，can('switch-paper')
-       就永久为 false。所以这里自带一个 total×1.6 的兜底定时器：到点仍未收尾就强制恢复，
-       并把这次收尾记进 trace.errors。done 标志位（finished）保证三条路径只走一次。 */
+       就永久为 false。所以这里自带一个兜底定时器：到点仍未收尾就强制恢复（forceReset →
+       restoreScene 回滚这一次点击），并把这次收尾记进 trace.errors。done 标志位（finished）
+       保证三条路径只走一次。
+       ---- 三条预算的大小关系（必须保持这个次序）----
+       · settle 最坏容忍 = del + dur×iterations + SETTLE_PAD(700) = 880 + 700 = 1580ms
+         （js/animation.js:146/177）。这是"健康的切换"本身可能用到的最长时间。
+       · 本地兜底      = lockEstimate×1.6 − NET_LEAD_MS = 2432 − 150 = 2282ms
+       · withLock 看门狗 = lockEstimate×1.6 = 2432ms（js/animation.js:279）
+       **本地兜底不得小于 settle 的最坏容忍**，否则一条只是慢一点、完全健康的切换会被
+       自己的网打死（forceReset 把用户那次翻页静默吞掉）。
+       **本地兜底又必须早于看门狗**并留出 NET_LEAD_MS：看门狗开火会走全局
+       recover → resetScene 把 phase 打成 idle，那是比吞一次点击严重得多的灾难态。
+       净效果：settle 1580 < 本地兜底 2282 < 看门狗 2432。 */
+    var NET_LEAD_MS = 150;
     var savedNewMotionCss = newMotion ? newMotion.style.transform : '';
     var savedNewPoseCss = newPose ? newPose.style.transform : '';
     var finished = false;
@@ -480,7 +451,7 @@
         }
         if (switchTrace) { switchTrace.errors.push('switch:forced-reset'); }
         forceReset();
-      }, Math.round(total * 1.6));
+      }, Math.round(lockEstimate * 1.6) - NET_LEAD_MS);
     }
     armForced();
     if (oldMotion) {
@@ -511,10 +482,6 @@
        （z 由内联值决定，摘类不影响动画） */
     oldItem.classList.remove('is-reading');
 
-    var revealTimer = window.setTimeout(function () {
-      newItem.classList.remove('is-page-hidden');
-    }, Math.max(0, total - 120));
-
     /* 新纸：抓起瞬间把倾角设成 --switch-tilt（2°–4°，md:900-915），
        再由 flipTo 内建的"摆正"动画在同一个 pullDur 里收回 0。
        倾斜与摆正只有这一个来源，不再叠加 CSS transition —— 否则两条动画会
@@ -542,7 +509,6 @@
 
     function cleanup() {
       finished = true;
-      window.clearTimeout(revealTimer);
       window.clearTimeout(pullTimer);
       window.clearTimeout(forcedTimer);
       oldItem.classList.remove('is-returning');
@@ -581,6 +547,14 @@
 
     function commit() {
       if (finished) { return false; }   /* 已被 rollback / 兜底收尾接管，不再提交 */
+      /* 场景已被复位过：只收自己的尾，绝不把 order / currentId / is-reading 写回被复位过的纸面 */
+      if (typeof anim.generation === 'function' && anim.generation() !== startGen) {
+        /* 只收自己的尾：restoreScene 会把切换前的内联样式写回，那一套已经作废 */
+        var tr0 = anim.trace;
+        if (tr0) { tr0.errors.push('switch:stale-generation'); }
+        cleanup();
+        return false;
+      }
       /* 落定后才提交顺序与 currentId：new 到最上层、old 回第二层，
          其余四张保持原有相对顺序（md:917-930） */
       var rest = (s.order || []).filter(function (id) {
@@ -648,37 +622,6 @@
      ============================================================ */
   var reflectLog = { entries: 0, lastEntry: null, continues: 0, lastContinue: null, finale: null };
   var dwellTimer = 0;
-
-  /* 反思位暗角：见 css/notebook.css 的 .reflect-veil 说明（取景把世界右缘推进画面）。
-     只建一个节点、只动 opacity，结束时整块移除，不参与任何几何测量。 */
-  function veil(on, ms) {
-    var wf = document.getElementById('world-fit');
-    if (!wf) { return null; }
-    var A = Archive.animation;
-    var v = document.getElementById('reflect-veil');
-    if (on) {
-      if (!v) {
-        v = document.createElement('div');
-        v.id = 'reflect-veil';
-        v.className = 'reflect-veil';
-        wf.appendChild(v);
-      }
-      v.style.opacity = '1';
-      if (A) { A.settle(A.anim(v, [{ opacity: 0 }, { opacity: 1 }], {
-        duration: Math.round(ms) || 900, easing: 'linear', label: 'reflect-veil'
-      }), v, null); }
-      return v;
-    }
-    if (!v) { return null; }
-    v.style.opacity = '0';
-    var drop = function () { if (v && v.parentNode) { v.parentNode.removeChild(v); } };
-    if (A) {
-      A.settle(A.anim(v, [{ opacity: 1 }, { opacity: 0 }], {
-        duration: Math.round(ms) || 420, easing: 'linear', label: 'reflect-veil-out'
-      }), v, null).then(drop, drop);
-    } else { drop(); }
-    return v;
-  }
 
   function reflectTime() {
     return {
@@ -750,7 +693,6 @@
 
     function restore() {
       try { if (camAnim) { camAnim.cancel(); } } catch (e) { /* 已取消 */ }
-      veil(false, 300);
       if (cam) { cam.style.transform = A.cameraCss('C1'); }
       if (nb && nb.restorePage) { try { nb.restorePage(); } catch (e) { /* 复位不得再抛 */ } }
       s.reflection = 'none';
@@ -776,7 +718,6 @@
         { transform: A.cameraCss('C2'), offset: 1 }
       ], { duration: t.cam, easing: t.easeReflect, label: 'camera-reflect' });
       A.stage('reflect-camera', 0, t.cam);
-      veil(true, t.cam);
       var pageP = (nb && nb.showQuestion) ? nb.showQuestion() : Promise.resolve(false);
       return Promise.all([A.settle(camAnim, cam, A.cameraCss('C2')), pageP]).then(function () {
         A.mark('stage:reflect:end');
@@ -828,10 +769,10 @@
       if (g) { g.stop(); }
       reflectLog.lastContinue.ok = !!ok;
       reflectLog.lastContinue.total = Math.round(window.performance.now() - startedAt);
-      if (ok) {
-        if (dwellTimer) { window.clearTimeout(dwellTimer); }
-        dwellTimer = window.setTimeout(runFinale, t.dwell);
-      }
+      /* 结束文字停在这里，等人工点「结束」（.book-reflect__end）再进收纳。
+         原先这里有一条 dwellTimer = setTimeout(runFinale, t.dwell) 的自动跳转，
+         用户决策 m01847 改为人工控制，已删除。 */
+      if (dwellTimer) { window.clearTimeout(dwellTimer); dwellTimer = 0; }
       return ok;
     }
     g = guard(total, function () {
@@ -894,7 +835,6 @@
 
     return A.withLock('finale', function () {
       try {
-        veil(false, t.coverClose);
         camAnim = A.anim(cam, [
           { transform: A.cameraCss('C2'), offset: 0 },
           { transform: A.cameraCss('C0'), offset: 1 }
@@ -970,6 +910,23 @@
     return A.withLock('close', function () { return runClose(t, total); }, total);
   }
 
+  /* 第七阶段结尾（人工「结束」）→ 直接走第八阶段的完整收纳。
+     与 requestClose 共用 runClose，唯一差别是起点机位：反思态镜头停在 C2，
+     阅读态停在 C1，runClose 的镜头首帧要按来源取，否则会先跳一下。
+     gate finish-archive 只在 reflection === 'text' 放行；runClose 一开始就把
+     phase 设成 closing，因此重复点击在 gate 层就返回 false。 */
+  function requestFinish() {
+    var A = Archive.animation;
+    if (!A) { return Promise.resolve(false); }
+    if (Archive.can('finish-archive') !== true) { return Promise.resolve(false); }
+    var t = closeTime();
+    var total = closeTotal(t);
+    A.resetTrace();
+    A.mark('close:start');
+    A.trace.total = total;
+    return A.withLock('close', function () { return runClose(t, total, true); }, total);
+  }
+
   /* 复位：把六个变换层、纸叠、信封、封面、机位与 state 一次性落回初值。
      不依赖任何动画对象 —— 强制复位时先 cancel 再写内联样式，避免 settle 的
      then 分支在稍后再把终值写回来。 */
@@ -1014,12 +971,16 @@
     }
     if (nb) {
       var cover = nb.querySelector('.cover');
-      if (cover) { cover.style.transform = ''; }
+      /* 显式写回 0° 而不是清空内联：清空后取值依赖 css，验收要求复位态读到 rotateY(0deg) */
+      if (cover) { cover.style.transform = 'rotateY(0deg)'; }
     }
     if (cam) { cam.style.transform = A ? A.cameraCss('C0') : ''; }
 
-    if (Archive.notebook && Archive.notebook.render) {
-      try { Archive.notebook.render(1); } catch (e3) { /* 复位不得再抛 */ }
+    if (Archive.notebook) {
+      try {
+        if (Archive.notebook.reset) { Archive.notebook.reset(); }
+        else if (Archive.notebook.render) { Archive.notebook.render(1); }
+      } catch (e3) { /* 复位不得再抛 */ }
     }
 
     s.order = [1, 2, 3, 4, 5, 6];
@@ -1030,6 +991,8 @@
     s.viewer = 'closed';
     s.reflection = 'none';
     s.switching = false;
+    s.notebookTurning = false;
+    hideOthers(1);
     applyZ();
     refreshNav();
     /* phase 最后改：watchPhase 的观察者在这之后收到的就是 idle */
@@ -1064,7 +1027,7 @@
     return true;
   }
 
-  function runClose(t, total) {
+  function runClose(t, total, fromReflection) {
     var A = Archive.animation;
     var s = st();
     var nb = Archive.notebook;
@@ -1151,8 +1114,9 @@
       /* ---- ⑦ 镜头拉远回 C0（最后一件事） ---- */
       var camP = Promise.resolve(false);
       if (cam) {
+        /* 起点机位按来源取：反思态在 C2（完整桌面），阅读态在 C1 */
         var camAnim = A.anim(cam, [
-          { transform: A.cameraCss('C1'), offset: 0 },
+          { transform: A.cameraCss(fromReflection === true ? 'C2' : 'C1'), offset: 0 },
           { transform: A.cameraCss('C0'), offset: 1 }
         ], { duration: t.cam, delay: t.delCam, easing: t.easeCamera, label: 'camera-close' });
         A.stage('close-camera', t.delCam, t.delCam + t.cam);
@@ -1174,31 +1138,23 @@
   }
 
   function initNav() {
-    nav.el = document.getElementById('reader-nav');
-    if (!nav.el) { return; }
-    nav.prev = nav.el.querySelector('.reader-nav__btn--prev');
-    nav.next = nav.el.querySelector('.reader-nav__btn--next');
-    nav.page = nav.el.querySelector('.reader-nav__now');
-    if (nav.prev) { nav.prev.addEventListener('click', function () { step(-1); }); }
-    if (nav.next) { nav.next.addEventListener('click', function () { step(1); }); }
+    nav.els = Array.prototype.slice.call(document.querySelectorAll('#paper-bundle .reader-nav'));
+    nav.buttons = [];
+    nav.els.forEach(function (el) {
+      var prev = el.querySelector('.reader-nav__btn--prev');
+      var next = el.querySelector('.reader-nav__btn--next');
+      if (prev) {
+        prev.addEventListener('click', function () { step(-1); });
+        nav.buttons.push(prev);
+      }
+      if (next) {
+        next.addEventListener('click', function () { step(1); });
+        nav.buttons.push(next);
+      }
+    });
     refreshNav();
     if (Archive.state && Archive.state.watchPhase) {
-      Archive.state.watchPhase(function (p) {
-        if (!nav.el) { return; }
-        /* 控件只在阅读态存在：进入反思（第七阶段）或收尾（ended）时必须收回，
-           否则一枚已禁用的 › 会留在画面上读作"没做完"。其余相位（idle/opening/
-           reading/switching）一个字节都不动 —— 换纸时 phase 仍是 reading，
-           所以 ‹ › 照旧可见、只是 disabled（P4 的行为不受影响）。 */
-        if (p === 'reading') {
-          nav.el.classList.add('is-live');
-          return;
-        }
-        /* 第八阶段：收纳（closing）也属于"控件不该在"的相位 —— 一旦离开 reading
-           就收回，回到 reading 才显影；idle 之后保持 hidden。 */
-        if (p === 'reflection' || p === 'ending' || p === 'ended' || p === 'closing') {
-          nav.el.classList.remove('is-live');
-        }
-      });
+      Archive.state.watchPhase(refreshNav);
     }
   }
 
@@ -1212,6 +1168,7 @@
     /* 第七阶段入口（js/state.js 的 requestReflection 转交到这里） */
     requestReflection: requestReflection,
     requestContinue: requestContinue,
+    requestFinish: requestFinish,
     runFinale: runFinale,
     reflectLog: reflectLog,
     /* 第八阶段：收纳入口（js/state.js 的 requestClose 转交到这里）+ 只读取证面 */
@@ -1220,6 +1177,7 @@
     closeTime: closeTime,
     closeTotal: closeTotal,
     resetScene: resetScene,
+    refreshNav: refreshNav,
     /* 第九阶段 P9b：看门狗放锁之后的相位兜底（js/animation.js 的 recoverFrom 调这里） */
     recover: recover,
     recoverLog: recoverLog

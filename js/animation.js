@@ -18,26 +18,64 @@
     C0: { x: 0, y: 0, s: 1 },
     C1: { x: -290, y: 0, s: 1.35 },
     /* 第七阶段 C2（反思位）：不写死平移量，只声明"把哪个 world 点放到画面中心"。
-       书写页中心的 world 坐标 (1615,540) 由 css/notebook.css 的布局决定，
+       书写页中心的 world 坐标是 (1615,540)（由 css/notebook.css 的布局决定）。
+       但 s=1.5 时可见 world 宽只有 1280（1920/1.5），把书写页硬摆正中会让
+       阅读位那张档案纸的左边缘被裁出画面 120px、文字断在半字，而桌面板只画到
+       world x=1920 —— 平移量再往左就要露出画布外的空白（见 clampCam）。
+       所以 at.x 取 1280：这正好是"可见区右边界贴住 world 右边界"的位置
+       （p.x = -1.5×(1280−960) = −480 = clampCam 的下界），
+       1920×1080 实测：档案纸 382–1087、笔记本 1204–1708，两者都完整在画内，
+       桌面铺满整屏（md:1072-1075「笔记本成为画面中心」+「其他物件仍然保留在场景中」）。
        平移量由 cameraOf() 从 at + s 反算，机位数值仍然只在这一个对象里。 */
-    C2: { at: { x: 1615, y: 540 }, s: 1.5 }
+    C2: { at: { x: 1280, y: 540 }, s: 1.5 }
   };
   var ORIGIN = { x: 960, y: 540 };
   var READ_CAM = 'C1';
   var REFLECT_CAM = 'C2';
 
-  /* 机位解析：at 形式（"把某 world 点摆到中心"）→ 平移量 + scale */
+  /* 机位夹紧：可见的 world 矩形必须落在画布 1920×1080 之内。
+     桌面只是画布上的一块平面（.desk-surface 铺满 #desk-world，没有向画布外延伸），
+     所以镜头一旦把窗口推出去，屏幕边就会露出没有桌面的底色 —— 一道硬边的黑带。
+     这里按两层缩放反解可见区间，把 p.x / p.y 压回边界内；
+     视口比画布还宽（非 16:9 的 letterbox）时无解，退化为居中。
+     反解式：X_left = 960 + ((0 − fit.x)/fit.scale − 960 − p.x)/s */
+  function clampCam(p) {
+    var W = numTok('--canvas-w', 1920);
+    var H = numTok('--canvas-h', 1080);
+    var v = fitView();
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    if (!v.scale) { return p; }
+    /* cMin/cMax：视口在该轴上的像素范围；origin/span：画布在该轴上的中心与长度。
+       约束 X_left ≥ 0 且 X_right ≤ span，解出 out 的可行区间 [lo, hi] */
+    function one(cMin, cMax, origin, span, out) {
+      var lo = (cMax / v.scale) - origin - (span - origin) * p.s;
+      var hi = (cMin / v.scale) + origin * (p.s - 1);
+      /* 两个出口都过同一个归零：letterbox（视口比画布宽）时 lo > hi 无解、退化为居中，
+         这一支同样会把 0.00038 这类亚像素残渣写进 transform —— 若不归零，
+         cameraCss('C0') 就不再是恒等，复位后 #camera 的 computed matrix 也带小数。 */
+      var k = lo > hi ? (lo + hi) / 2 : Math.min(Math.max(out, lo), hi);
+      return Math.abs(k) < 0.5 ? 0 : k;
+    }
+    return {
+      x: one(0, vw, ORIGIN.x, W, p.x),
+      y: one(0, vh, ORIGIN.y, H, p.y),
+      s: p.s
+    };
+  }
+
+  /* 机位解析：at 形式（"把某 world 点摆到中心"）→ 平移量 + scale，再统一夹紧 */
   function cameraOf(preset) {
     var p = typeof preset === 'string' ? CINEMA[preset] : preset;
     if (!p) { return CINEMA.C0; }
     if (p.at) {
-      return {
+      p = {
         x: Math.round(-p.s * (p.at.x - ORIGIN.x) * 100) / 100,
         y: Math.round(-p.s * (p.at.y - ORIGIN.y) * 100) / 100,
         s: p.s
       };
     }
-    return p;
+    return clampCam(p);
   }
 
   /* ---------- 令牌读取 ---------- */
